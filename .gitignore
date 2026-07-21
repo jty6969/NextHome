@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build
+dist/
+build/
+.next/
+out/
+*.local
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+Desktop.ini
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Python (if used)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Database
+*.sqlite
+*.db
