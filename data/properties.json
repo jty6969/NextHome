@@ -1,0 +1,307 @@
+[
+  {
+    "id": "tcyp-a-1801",
+    "community": "汤臣一品",
+    "building": "A 栋",
+    "unit": "1801 室",
+    "city": "上海",
+    "district": "浦东新区",
+    "address": "浦东新区花园石桥路 66 号",
+    "totalPrice": 1680,
+    "unitPrice": 12.8,
+    "area": 131.0,
+    "rooms": { "bedroom": 3, "livingRoom": 2, "bathroom": 2 },
+    "floor": { "level": 18, "total": 32 },
+    "orientation": "南",
+    "decoration": "精装修",
+    "buildYear": 2006,
+    "propertyType": "住宅",
+    "ownershipYears": 70,
+    "listingDate": "2026-08-20",
+    "priceHistory": [
+      { "date": "2026-08-20", "price": 1750 },
+      { "date": "2026-09-01", "price": 1680 }
+    ],
+    "daysOnMarket": 16,
+    "priceDropCount": 1,
+    "images": ["exterior", "livingroom", "bedroom", "kitchen", "bathroom", "balcony"],
+    "highlights": ["江景无遮挡", "高楼层视野好", "精装修可拎包入住", "陆家嘴核心地段"],
+    "sellingPoint": "陆家嘴一线江景，高层视野开阔，正对黄浦江湾景，装修保养极佳",
+    "compromise": "总价较高，物业费约 8 元/㎡/月",
+    "surrounding": {
+      "metro": { "line": "2 号线", "station": "陆家嘴站", "distance": 800 },
+      "mall": ["正大广场 1.2km", "国金中心 1.5km", "环球金融中心 1.8km"],
+      "school": ["明珠小学 0.8km", "东昌中学 1.2km"],
+      "hospital": ["仁济医院东院 1.5km", "东方医院 2.0km"],
+      "park": ["陆家嘴中心绿地 0.6km"]
+    },
+    "seller": {
+      "id": "seller_001",
+      "name": "王女士",
+      "phone": "138****6688",
+      "avatar": "W",
+      "availableSlots": [
+        { "date": "2026-09-06", "slots": ["10:00-11:00", "14:00-15:00"] },
+        { "date": "2026-09-07", "slots": ["10:00-11:00"] },
+        { "date": "2026-09-13", "slots": ["10:00-11:00", "14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-14", "slots": ["14:00-15:00"] },
+        { "date": "2026-09-20", "slots": ["10:00-11:00", "14:00-15:00"] }
+      ]
+    },
+    "communityInfo": {
+      "name": "汤臣一品",
+      "buildYear": 2006,
+      "developer": "汤臣集团",
+      "propertyFee": 8.0,
+      "greeningRate": "40%",
+      "plotRatio": "3.2",
+      "totalBuildings": 4,
+      "totalUnits": 228,
+      "parkingRatio": "1:2"
+    }
+  },
+  {
+    "id": "tcyp-a-2305",
+    "community": "汤臣一品",
+    "building": "A 栋",
+    "unit": "2305 室",
+    "city": "上海",
+    "district": "浦东新区",
+    "address": "浦东新区花园石桥路 66 号",
+    "totalPrice": 2200,
+    "unitPrice": 13.5,
+    "area": 163.0,
+    "rooms": { "bedroom": 4, "livingRoom": 2, "bathroom": 3 },
+    "floor": { "level": 23, "total": 32 },
+    "orientation": "南",
+    "decoration": "豪装",
+    "buildYear": 2006,
+    "propertyType": "住宅",
+    "ownershipYears": 70,
+    "listingDate": "2026-08-15",
+    "priceHistory": [
+      { "date": "2026-08-15", "price": 2350 },
+      { "date": "2026-08-28", "price": 2200 }
+    ],
+    "daysOnMarket": 21,
+    "priceDropCount": 1,
+    "images": ["exterior", "livingroom", "bedroom", "kitchen", "bathroom"],
+    "highlights": ["一线江景大平层", "4 房大户型", "豪装交付", "私家电梯入户"],
+    "sellingPoint": "23 层正南无遮挡江景，163 ㎡大平层，4 房适合改善型家庭，私家电梯入户",
+    "compromise": "总价超 2000 万，适合高预算买家",
+    "surrounding": {
+      "metro": { "line": "2 号线", "station": "陆家嘴站", "distance": 800 },
+      "mall": ["正大广场 1.2km", "国金中心 1.5km"],
+      "school": ["明珠小学 0.8km", "东昌中学 1.2km"],
+      "hospital": ["仁济医院东院 1.5km"],
+      "park": ["陆家嘴中心绿地 0.6km"]
+    },
+    "seller": {
+      "id": "seller_002",
+      "name": "李先生",
+      "phone": "139****2288",
+      "avatar": "L",
+      "availableSlots": [
+        { "date": "2026-09-06", "slots": ["14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-07", "slots": ["10:00-11:00", "14:00-15:00"] },
+        { "date": "2026-09-13", "slots": ["10:00-11:00"] },
+        { "date": "2026-09-14", "slots": ["10:00-11:00", "14:00-15:00"] },
+        { "date": "2026-09-21", "slots": ["10:00-11:00", "14:00-15:00"] }
+      ]
+    },
+    "communityInfo": {
+      "name": "汤臣一品",
+      "buildYear": 2006,
+      "developer": "汤臣集团",
+      "propertyFee": 8.0,
+      "greeningRate": "40%",
+      "plotRatio": "3.2",
+      "totalBuildings": 4,
+      "totalUnits": 228,
+      "parkingRatio": "1:2"
+    }
+  },
+  {
+    "id": "tcyp-b-0802",
+    "community": "汤臣一品",
+    "building": "B 栋",
+    "unit": "0802 室",
+    "city": "上海",
+    "district": "浦东新区",
+    "address": "浦东新区花园石桥路 66 号",
+    "totalPrice": 980,
+    "unitPrice": 11.0,
+    "area": 89.0,
+    "rooms": { "bedroom": 2, "livingRoom": 1, "bathroom": 1 },
+    "floor": { "level": 8, "total": 32 },
+    "orientation": "东南",
+    "decoration": "简装",
+    "buildYear": 2006,
+    "propertyType": "住宅",
+    "ownershipYears": 70,
+    "listingDate": "2026-08-25",
+    "priceHistory": [
+      { "date": "2026-08-25", "price": 1050 },
+      { "date": "2026-09-02", "price": 980 }
+    ],
+    "daysOnMarket": 11,
+    "priceDropCount": 1,
+    "images": ["exterior", "livingroom", "bedroom", "kitchen"],
+    "highlights": ["低总价上车盘", "2 房紧凑实用", "东南采光好", "可改精装"],
+    "sellingPoint": "8 层东南向，89 ㎡ 2 房，低总价入主汤臣一品，适合首改刚需",
+    "compromise": "低楼层景观一般，简装需翻新，1 卫不够大家庭使用",
+    "surrounding": {
+      "metro": { "line": "2 号线", "station": "陆家嘴站", "distance": 800 },
+      "mall": ["正大广场 1.2km", "国金中心 1.5km"],
+      "school": ["明珠小学 0.8km"],
+      "hospital": ["仁济医院东院 1.5km"],
+      "park": ["陆家嘴中心绿地 0.6km"]
+    },
+    "seller": {
+      "id": "seller_003",
+      "name": "张先生",
+      "phone": "137****5599",
+      "avatar": "Z",
+      "availableSlots": [
+        { "date": "2026-09-06", "slots": ["10:00-11:00"] },
+        { "date": "2026-09-07", "slots": ["14:00-15:00"] },
+        { "date": "2026-09-13", "slots": ["10:00-11:00", "14:00-15:00"] },
+        { "date": "2026-09-20", "slots": ["10:00-11:00", "14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-21", "slots": ["10:00-11:00"] }
+      ]
+    },
+    "communityInfo": {
+      "name": "汤臣一品",
+      "buildYear": 2006,
+      "developer": "汤臣集团",
+      "propertyFee": 8.0,
+      "greeningRate": "40%",
+      "plotRatio": "3.2",
+      "totalBuildings": 4,
+      "totalUnits": 228,
+      "parkingRatio": "1:2"
+    }
+  },
+  {
+    "id": "tcyp-a-1503",
+    "community": "汤臣一品",
+    "building": "A 栋",
+    "unit": "1503 室",
+    "city": "上海",
+    "district": "浦东新区",
+    "address": "浦东新区花园石桥路 66 号",
+    "totalPrice": 1450,
+    "unitPrice": 12.4,
+    "area": 117.0,
+    "rooms": { "bedroom": 3, "livingRoom": 1, "bathroom": 2 },
+    "floor": { "level": 15, "total": 32 },
+    "orientation": "西南",
+    "decoration": "精装修",
+    "buildYear": 2006,
+    "propertyType": "住宅",
+    "ownershipYears": 70,
+    "listingDate": "2026-08-18",
+    "priceHistory": [
+      { "date": "2026-08-18", "price": 1520 }
+    ],
+    "daysOnMarket": 18,
+    "priceDropCount": 0,
+    "images": ["exterior", "livingroom", "bedroom", "kitchen", "bathroom"],
+    "highlights": ["中楼层性价比高", "3 房 2 卫", "精装修", "西南向采光充足"],
+    "sellingPoint": "15 层西南向，117 ㎡ 3 房 2 卫，精装修，价格在小区中属中位数，性价比突出",
+    "compromise": "西南向夏季西晒明显，非正南朝向",
+    "surrounding": {
+      "metro": { "line": "2 号线", "station": "陆家嘴站", "distance": 800 },
+      "mall": ["正大广场 1.2km", "国金中心 1.5km"],
+      "school": ["明珠小学 0.8km", "东昌中学 1.2km"],
+      "hospital": ["仁济医院东院 1.5km"],
+      "park": ["陆家嘴中心绿地 0.6km"]
+    },
+    "seller": {
+      "id": "seller_004",
+      "name": "陈女士",
+      "phone": "136****7788",
+      "avatar": "C",
+      "availableSlots": [
+        { "date": "2026-09-06", "slots": ["16:00-17:00"] },
+        { "date": "2026-09-07", "slots": ["10:00-11:00", "14:00-15:00"] },
+        { "date": "2026-09-14", "slots": ["10:00-11:00", "14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-20", "slots": ["14:00-15:00"] },
+        { "date": "2026-09-21", "slots": ["10:00-11:00", "14:00-15:00"] }
+      ]
+    },
+    "communityInfo": {
+      "name": "汤臣一品",
+      "buildYear": 2006,
+      "developer": "汤臣集团",
+      "propertyFee": 8.0,
+      "greeningRate": "40%",
+      "plotRatio": "3.2",
+      "totalBuildings": 4,
+      "totalUnits": 228,
+      "parkingRatio": "1:2"
+    }
+  },
+  {
+    "id": "tcyp-b-2801",
+    "community": "汤臣一品",
+    "building": "B 栋",
+    "unit": "2801 室",
+    "city": "上海",
+    "district": "浦东新区",
+    "address": "浦东新区花园石桥路 66 号",
+    "totalPrice": 1390,
+    "unitPrice": 11.9,
+    "area": 117.0,
+    "rooms": { "bedroom": 3, "livingRoom": 2, "bathroom": 2 },
+    "floor": { "level": 28, "total": 32 },
+    "orientation": "南",
+    "decoration": "毛坯",
+    "buildYear": 2006,
+    "propertyType": "住宅",
+    "ownershipYears": 70,
+    "listingDate": "2026-08-22",
+    "priceHistory": [
+      { "date": "2026-08-22", "price": 1480 },
+      { "date": "2026-09-01", "price": 1430 },
+      { "date": "2026-09-04", "price": 1390 }
+    ],
+    "daysOnMarket": 14,
+    "priceDropCount": 2,
+    "images": ["exterior", "livingroom"],
+    "highlights": ["高楼层正南江景", "毛坯可自定义装修", "2 次降价急售", "3 房 2 厅"],
+    "sellingPoint": "28 层正南江景，毛坯房可按自己喜好装修，2 次降价共降 90 万，卖家急售",
+    "compromise": "毛坯需另投 30-50 万装修，装修期需租房过渡",
+    "surrounding": {
+      "metro": { "line": "2 号线", "station": "陆家嘴站", "distance": 800 },
+      "mall": ["正大广场 1.2km", "国金中心 1.5km"],
+      "school": ["明珠小学 0.8km"],
+      "hospital": ["仁济医院东院 1.5km"],
+      "park": ["陆家嘴中心绿地 0.6km"]
+    },
+    "seller": {
+      "id": "seller_005",
+      "name": "赵先生",
+      "phone": "135****3344",
+      "avatar": "R",
+      "availableSlots": [
+        { "date": "2026-09-06", "slots": ["10:00-11:00", "14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-07", "slots": ["10:00-11:00"] },
+        { "date": "2026-09-13", "slots": ["14:00-15:00", "16:00-17:00"] },
+        { "date": "2026-09-14", "slots": ["10:00-11:00"] },
+        { "date": "2026-09-20", "slots": ["10:00-11:00", "14:00-15:00"] }
+      ]
+    },
+    "communityInfo": {
+      "name": "汤臣一品",
+      "buildYear": 2006,
+      "developer": "汤臣集团",
+      "propertyFee": 8.0,
+      "greeningRate": "40%",
+      "plotRatio": "3.2",
+      "totalBuildings": 4,
+      "totalUnits": 228,
+      "parkingRatio": "1:2"
+    }
+  }
+]

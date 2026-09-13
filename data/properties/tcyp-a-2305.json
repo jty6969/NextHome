@@ -1,0 +1,134 @@
+{
+  "id": "tcyp-a-2305",
+  "community": "汤臣一品",
+  "building": "A 栋",
+  "unit": "2305 室",
+  "city": "上海",
+  "district": "浦东新区",
+  "address": "浦东新区花园石桥路 66 号",
+  "totalPrice": 2200,
+  "unitPrice": 13.5,
+  "area": 163,
+  "rooms": {
+    "bedroom": 4,
+    "livingRoom": 2,
+    "bathroom": 3
+  },
+  "floor": {
+    "level": 23,
+    "total": 32
+  },
+  "orientation": "南",
+  "decoration": "豪装",
+  "buildYear": 2006,
+  "propertyType": "住宅",
+  "ownershipYears": 70,
+  "listingDate": "2026-08-15",
+  "priceHistory": [
+    {
+      "date": "2026-08-15",
+      "price": 2350
+    },
+    {
+      "date": "2026-08-28",
+      "price": 2200
+    }
+  ],
+  "daysOnMarket": 21,
+  "priceDropCount": 1,
+  "images": [
+    "exterior",
+    "livingroom",
+    "bedroom",
+    "kitchen",
+    "bathroom"
+  ],
+  "highlights": [
+    "一线江景大平层",
+    "4 房大户型",
+    "豪装交付",
+    "私家电梯入户"
+  ],
+  "sellingPoint": "23 层正南无遮挡江景，163 ㎡大平层，4 房适合改善型家庭，私家电梯入户",
+  "compromise": "总价超 2000 万，适合高预算买家",
+  "surrounding": {
+    "metro": {
+      "line": "2 号线",
+      "station": "陆家嘴站",
+      "distance": 800
+    },
+    "mall": [
+      "正大广场 1.2km",
+      "国金中心 1.5km"
+    ],
+    "school": [
+      "明珠小学 0.8km",
+      "东昌中学 1.2km"
+    ],
+    "hospital": [
+      "仁济医院东院 1.5km"
+    ],
+    "park": [
+      "陆家嘴中心绿地 0.6km"
+    ]
+  },
+  "seller": {
+    "id": "seller_tcyp02",
+    "name": "李先生",
+    "phone": "139****2288",
+    "avatar": "L",
+    "availableSlots": [
+      {
+        "date": "2026-09-06",
+        "slots": [
+          "14:00-15:00",
+          "16:00-17:00"
+        ]
+      },
+      {
+        "date": "2026-09-07",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-13",
+        "slots": [
+          "10:00-11:00"
+        ]
+      },
+      {
+        "date": "2026-09-14",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-21",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      }
+    ],
+    "username": "seller_tcyp02"
+  },
+  "communityInfo": {
+    "name": "汤臣一品",
+    "buildYear": 2006,
+    "developer": "汤臣集团",
+    "propertyFee": 8,
+    "greeningRate": "40%",
+    "plotRatio": "3.2",
+    "totalBuildings": 4,
+    "totalUnits": 228,
+    "parkingRatio": "1:2"
+  },
+  "source": {
+    "platform": "内置演示数据",
+    "url": "",
+    "scrapedAt": "2026-08"
+  }
+}

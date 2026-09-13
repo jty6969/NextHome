@@ -1,0 +1,254 @@
+/* Nexthome AI 购房助手 - 全局样式 */
+:root {
+  --primary: #1677ff;
+  --primary-dark: #0958d9;
+  --primary-light: #e6f4ff;
+  --success: #52c41a;
+  --warning: #faad14;
+  --danger: #ff4d4f;
+  --text: #1a1a1a;
+  --text-secondary: #666;
+  --text-light: #999;
+  --border: #e8e8e8;
+  --bg: #f5f7fa;
+  --bg-white: #fff;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --navbar-h: 56px;
+  --max-w: 1200px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 14px; color: var(--text); background: var(--bg); line-height: 1.6;
+}
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-dark); }
+ul, ol { list-style: none; }
+img { max-width: 100%; }
+
+/* 导航栏 */
+.navbar {
+  height: var(--navbar-h);
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.logo { font-size: 18px; font-weight: 700; color: var(--primary); margin-right: 32px; white-space: nowrap; }
+.nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-links a {
+  padding: 6px 14px; border-radius: var(--radius-sm); color: var(--text-secondary);
+  font-size: 13px; transition: all .2s; white-space: nowrap;
+}
+.nav-links a:hover { background: var(--primary-light); color: var(--primary); }
+.nav-links a.active { background: var(--primary); color: #fff; }
+
+/* 主容器 */
+.page-container { max-width: var(--max-w); margin: 0 auto; padding: 24px; min-height: calc(100vh - var(--navbar-h) - 60px); }
+
+/* 页脚 */
+.footer { text-align: center; padding: 16px; color: var(--text-light); font-size: 12px; border-top: 1px solid var(--border); background: var(--bg-white); }
+
+/* Toast */
+.toast {
+  position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px);
+  background: var(--text); color: #fff; padding: 10px 20px; border-radius: var(--radius);
+  font-size: 13px; z-index: 9999; opacity: 0; pointer-events: none; transition: all .3s; max-width: 90%;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.warn { background: var(--warning); }
+
+/* Loading */
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(255,255,255,0.7); z-index: 9998;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+}
+.loading-spinner {
+  width: 36px; height: 36px; border: 3px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 通用卡片 */
+.card { background: var(--bg-white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.card-pad { padding: 16px; }
+
+/* 通用按钮 */
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+  font-size: 13px; cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-block { width: 100%; justify-content: center; }
+
+/* 标签 */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.tag-blue { background: var(--primary-light); color: var(--primary); }
+.tag-green { background: #f6ffed; color: var(--success); }
+.tag-orange { background: #fff7e6; color: var(--warning); }
+.tag-red { background: #fff2f0; color: var(--danger); }
+.tag-gray { background: #f5f5f5; color: var(--text-secondary); }
+.tag-yellow { background: #fff7e6; color: var(--warning); }
+
+/* 房源卡片 */
+.prop-card {
+  background: var(--bg-white); border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden; cursor: pointer; transition: box-shadow .2s, transform .2s; border: 1px solid var(--border);
+}
+.prop-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.prop-card-img {
+  width: 100%; height: 180px; background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; font-weight: 700;
+}
+.prop-card-body { padding: 12px 14px; }
+.prop-card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.prop-card-price { font-size: 20px; font-weight: 700; color: var(--danger); }
+.prop-card-price small { font-size: 12px; font-weight: 400; }
+.prop-card-meta { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+.prop-card-tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* 网格 */
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .nav-links { overflow-x: auto; }
+}
+
+/* 聊天 */
+.chat-layout { display: flex; gap: 16px; height: calc(100vh - var(--navbar-h) - 100px); }
+.chat-main { flex: 1; display: flex; flex-direction: column; background: var(--bg-white); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.chat-side { width: 280px; background: var(--bg-white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; overflow-y: auto; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.chat-bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.6; word-break: break-word; white-space: pre-wrap; }
+.chat-bubble.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 2px; }
+.chat-bubble.ai { align-self: flex-start; background: #f0f0f0; color: var(--text); border-bottom-left-radius: 2px; }
+.chat-bubble.seller { align-self: flex-start; background: #fffbe6; border: 1px solid #ffe58f; border-bottom-left-radius: 2px; }
+.chat-bubble.buyer { align-self: flex-end; background: #e6f4ff; border: 1px solid #91caff; border-bottom-right-radius: 2px; }
+.chat-input-bar { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+.chat-input-bar textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: inherit; max-height: 100px; }
+.chat-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
+.avatar-ai { background: var(--primary); }
+.avatar-user { background: var(--success); }
+.avatar-seller { background: var(--warning); }
+
+/* AI 房源推荐卡片（嵌入聊天） */
+.ai-prop-card {
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 6px;
+  background: #fafafa; cursor: pointer; transition: box-shadow .2s;
+}
+.ai-prop-card:hover { box-shadow: var(--shadow); }
+.ai-prop-card-head { padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+.ai-prop-card-price { color: var(--danger); font-weight: 700; font-size: 16px; }
+.ai-prop-card-info { padding: 0 12px 10px; color: var(--text-secondary); font-size: 12px; }
+.ai-prop-card-actions { display: flex; gap: 6px; padding: 0 12px 10px; }
+
+/* 画像面板 */
+.profile-panel { font-size: 12px; }
+.profile-panel h4 { font-size: 13px; margin-bottom: 8px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.profile-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.profile-row .label { color: var(--text-light); }
+.profile-row .val { color: var(--text); font-weight: 500; text-align: right; }
+.profile-completeness { margin-top: 8px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.profile-completeness-bar { height: 100%; background: var(--primary); border-radius: 3px; transition: width .5s; }
+.profile-badge { font-size: 12px; color: var(--text-light); }
+
+/* 议价卡片 */
+.deal-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin: 8px 0; background: #fffbe6; }
+.deal-card-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.deal-card-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; }
+
+/* 交易进度 */
+.tx-steps { display: flex; flex-direction: column; gap: 0; }
+.tx-step { display: flex; gap: 12px; padding-bottom: 20px; position: relative; }
+.tx-step:not(:last-child)::before { content: ''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: var(--border); }
+.tx-step.done:not(:last-child)::before { background: var(--success); }
+.tx-step-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; z-index: 1; }
+.tx-step.done .tx-step-icon { background: var(--success); color: #fff; }
+.tx-step.current .tx-step-icon { background: var(--primary); color: #fff; }
+.tx-step.pending .tx-step-icon { background: var(--border); color: var(--text-light); }
+.tx-step-content { flex: 1; padding-top: 4px; }
+.tx-step-title { font-weight: 600; font-size: 14px; }
+.tx-step-desc { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
+
+/* 日历 */
+.calendar { width: 100%; border-collapse: collapse; }
+.calendar th, .calendar td { border: 1px solid var(--border); text-align: center; padding: 8px; font-size: 12px; }
+.calendar th { background: #fafafa; font-weight: 600; }
+.calendar td.available { background: #f6ffed; cursor: pointer; }
+.calendar td.available:hover { background: #d9f7be; }
+.calendar td.selected { background: var(--primary); color: #fff; }
+.calendar td.disabled { color: var(--text-light); background: #fafafa; }
+
+/* 表单 */
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit; background: #fff;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
+.form-textarea { resize: vertical; min-height: 60px; }
+
+/* 空状态 */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+.empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* 工具类 */
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-light { color: var(--text-light); }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.fw-bold { font-weight: 700; }
+.fw-600 { font-weight: 600; }
+.mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
+.mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; } .mb-24 { margin-bottom: 24px; }
+.flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; } .gap-12 { gap: 12px; } .gap-16 { gap: 16px; }
+.flex-1 { flex: 1; } .flex-wrap { flex-wrap: wrap; }
+.hidden { display: none; }
+
+/* 消息列表 */
+.msg-list-item { display: flex; gap: 10px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .2s; }
+.msg-list-item:hover { background: #fafafa; }
+.msg-list-item.active { background: var(--primary-light); }
+
+/* 详情页 */
+.detail-gallery { width: 100%; height: 320px; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; display: flex; gap: 4px; }
+.detail-gallery .gallery-main { flex: 2; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28px; font-weight: 700; }
+.detail-gallery .gallery-side { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.detail-gallery .gallery-side > div { flex: 1; background: linear-gradient(135deg, #f093fb, #f5576c); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; border-radius: var(--radius-sm); }
+.detail-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 24px; margin: 12px 0; }
+.detail-info-grid .info-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.detail-info-grid .info-item .label { color: var(--text-light); }
+.ai-analysis-box { background: linear-gradient(135deg, #e6f4ff, #f0f5ff); border-radius: var(--radius); padding: 16px; margin-top: 16px; border-left: 4px solid var(--primary); }
+.ai-analysis-box h4 { color: var(--primary); margin-bottom: 8px; }
+
+/* 响应式聊天布局 */
+@media (max-width: 768px) {
+  .chat-layout { flex-direction: column; height: auto; }
+  .chat-side { width: 100%; max-height: 200px; }
+  .chat-main { min-height: 400px; }
+  .detail-gallery { flex-direction: column; height: auto; }
+  .detail-info-grid { grid-template-columns: 1fr; }
+}

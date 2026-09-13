@@ -1,0 +1,6 @@
+{
+  "endpoint": "https://api.deepseek.com/v1/chat/completions",
+  "apiKey": "在此填入你的 DeepSeek API Key（sk- 开头，请勿把真实 key 提交到 Git）",
+  "model": "deepseek-chat",
+  "timeoutMs": 30000
+}

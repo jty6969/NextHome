@@ -1,0 +1,136 @@
+{
+  "id": "lshy-2",
+  "community": "罗山花苑",
+  "building": "18 号",
+  "unit": "301 室",
+  "city": "上海",
+  "district": "浦东新区",
+  "address": "浦东新区碧云明月路199弄",
+  "totalPrice": 950,
+  "unitPrice": 7.84,
+  "area": 121,
+  "rooms": {
+    "bedroom": 3,
+    "livingRoom": 2,
+    "bathroom": 2
+  },
+  "floor": {
+    "level": 3,
+    "total": 6
+  },
+  "orientation": "南",
+  "decoration": "精装",
+  "buildYear": 2001,
+  "propertyType": "住宅",
+  "ownershipYears": 70,
+  "listingDate": "2026-08-08",
+  "priceHistory": [
+    {
+      "date": "2026-08-08",
+      "price": 950
+    }
+  ],
+  "daysOnMarket": 28,
+  "priceDropCount": 0,
+  "images": [
+    "exterior",
+    "livingroom",
+    "bedroom",
+    "kitchen",
+    "bathroom",
+    "balcony"
+  ],
+  "highlights": [
+    "户型方正",
+    "三房朝南",
+    "近上海市实验学校东校",
+    "满五年"
+  ],
+  "sellingPoint": "121㎡ 大三房，客厅面宽 4.2 米，主卧带阳台，小区绿化高，紧邻上实东校，接送方便。",
+  "compromise": "总价偏高，三房预算需要 900 万以上。",
+  "title": "户型正气大三房，上实隔壁小区，绿化多",
+  "surrounding": {
+    "metro": {
+      "line": "9 号线",
+      "station": "蓝天路站",
+      "distance": 1100
+    },
+    "mall": [
+      "家乐福（碧云店）1.2km",
+      "碧云体育休闲中心 1.0km",
+      "金桥国际商业广场 1.8km"
+    ],
+    "school": [
+      "上海市实验学校东校 0.8km",
+      "香山小学 1.0km",
+      "冰厂田幼儿园碧云部 0.9km"
+    ],
+    "hospital": [
+      "瑞东医院 1.2km",
+      "华山医院东院 1.8km"
+    ],
+    "park": [
+      "金桥公园 1.0km",
+      "碧云绿地 0.8km"
+    ]
+  },
+  "communityInfo": {
+    "name": "罗山花苑",
+    "buildYear": 2000,
+    "developer": "上海金洋置业有限公司",
+    "propertyFee": 1.2,
+    "greeningRate": "35%",
+    "plotRatio": "1.4",
+    "totalBuildings": 105,
+    "totalUnits": 826,
+    "parkingRatio": "1:0.6"
+  },
+  "seller": {
+    "id": "seller_lshy02",
+    "username": "seller_lshy02",
+    "name": "李先生",
+    "phone": "139****2137",
+    "avatar": "李",
+    "availableSlots": [
+      {
+        "date": "2026-09-06",
+        "slots": [
+          "14:00-15:00",
+          "10:00-11:00"
+        ]
+      },
+      {
+        "date": "2026-09-07",
+        "slots": [
+          "10:00-11:00"
+        ]
+      },
+      {
+        "date": "2026-09-13",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00",
+          "16:00-17:00"
+        ]
+      },
+      {
+        "date": "2026-09-14",
+        "slots": [
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-20",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      }
+    ]
+  },
+  "source": {
+    "platform": "房天下（fang.com）公开在售挂牌",
+    "url": "https://sh.esf.fang.com/chushou/3_511661738.htm",
+    "scrapedAt": "2026-09-05"
+  }
+}

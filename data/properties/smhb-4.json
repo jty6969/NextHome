@@ -1,0 +1,144 @@
+{
+  "id": "smhb-4",
+  "community": "世茂湖滨花园",
+  "building": "4 号楼",
+  "unit": "1502 室",
+  "city": "上海",
+  "district": "浦东新区",
+  "address": "浦东新区碧云明月路188弄",
+  "totalPrice": 976,
+  "unitPrice": 7.19,
+  "area": 135,
+  "rooms": {
+    "bedroom": 2,
+    "livingRoom": 2,
+    "bathroom": 2
+  },
+  "floor": {
+    "level": 15,
+    "total": 28
+  },
+  "orientation": "南",
+  "decoration": "精装",
+  "buildYear": 2004,
+  "propertyType": "住宅",
+  "ownershipYears": 70,
+  "listingDate": "2026-07-28",
+  "priceHistory": [
+    {
+      "date": "2026-07-28",
+      "price": 1005
+    },
+    {
+      "date": "2026-07-28",
+      "price": 976
+    },
+    {
+      "date": "2026-09-01",
+      "price": 976
+    }
+  ],
+  "daysOnMarket": 39,
+  "priceDropCount": 1,
+  "images": [
+    "exterior",
+    "livingroom",
+    "bedroom",
+    "kitchen",
+    "bathroom",
+    "balcony"
+  ],
+  "highlights": [
+    "正看湖景",
+    "双产权车位",
+    "税费各付",
+    "满五年"
+  ],
+  "sellingPoint": "一期 135㎡ 两房，客厅主卧正看小区中心湖景，中层视野开阔，带双产权车位，报价为税费各付价，到手清晰。",
+  "compromise": "两房设计，改善家庭需注意房间数。",
+  "title": "一期正看湖景，视野开阔，双产权车位，税费各付价",
+  "surrounding": {
+    "metro": {
+      "line": "9 号线",
+      "station": "蓝天路站",
+      "distance": 1009
+    },
+    "mall": [
+      "家乐福（碧云店）0.9km",
+      "碧云体育休闲中心 0.7km",
+      "金桥国际商业广场 1.6km"
+    ],
+    "school": [
+      "上海德威英国国际学校 0.8km",
+      "上海市实验学校东校 1.2km",
+      "冰厂田幼儿园碧云部 1.0km"
+    ],
+    "hospital": [
+      "瑞东医院 0.9km",
+      "华山医院东院 1.5km"
+    ],
+    "park": [
+      "张家浜滨水绿地 0.5km",
+      "金桥公园 1.3km"
+    ]
+  },
+  "communityInfo": {
+    "name": "世茂湖滨花园",
+    "buildYear": 2004,
+    "developer": "世茂集团",
+    "propertyFee": 3.6,
+    "greeningRate": "60%",
+    "plotRatio": "1.2",
+    "totalBuildings": 32,
+    "totalUnits": 1164,
+    "parkingRatio": "1:1.5"
+  },
+  "seller": {
+    "id": "seller_smhb04",
+    "username": "seller_smhb04",
+    "name": "陈先生",
+    "phone": "136****2411",
+    "avatar": "陈",
+    "availableSlots": [
+      {
+        "date": "2026-09-06",
+        "slots": [
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-07",
+        "slots": [
+          "10:00-11:00"
+        ]
+      },
+      {
+        "date": "2026-09-13",
+        "slots": [
+          "16:00-17:00",
+          "10:00-11:00",
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-14",
+        "slots": [
+          "14:00-15:00"
+        ]
+      },
+      {
+        "date": "2026-09-20",
+        "slots": [
+          "14:00-15:00",
+          "10:00-11:00"
+        ]
+      }
+    ]
+  },
+  "source": {
+    "platform": "房天下（fang.com）公开在售挂牌",
+    "url": "https://shanghai.anjuke.com/prop/view/7287856145",
+    "scrapedAt": "2026-09-05"
+  }
+}
