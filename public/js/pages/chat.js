@@ -1,4 +1,4 @@
-/* Nexthome - AI 对话页 */
+/* Nexthome - AI 对话页（双语） */
 (function (global) {
   'use strict';
 
@@ -9,14 +9,20 @@
 
   App.Router.register('/chat', function () { render(); });
 
+  function t(key, vars) { return App.I18n ? App.I18n.t(key, vars) : key; }
+  function en() { return App.I18n && App.I18n.isEn(); }
+
   function render() {
+    var inputPh = en()
+      ? 'Type your home-buying question (Enter to send, Shift+Enter for newline)…'
+      : '输入你想咨询的购房问题（Enter 发送，Shift+Enter 换行）…';
     var html = '' +
       '<div class="chat-layout">' +
         '<div class="chat-main">' +
           '<div class="chat-messages" id="chatMessages"></div>' +
           '<div class="chat-input-bar">' +
-            '<textarea id="chatInput" placeholder="输入你想咨询的购房问题（Enter 发送，Shift+Enter 换行）…" rows="1"></textarea>' +
-            '<button class="btn btn-primary" id="chatSend">发送</button>' +
+            '<textarea id="chatInput" placeholder="' + inputPh + '" rows="1"></textarea>' +
+            '<button class="btn btn-primary" id="chatSend">' + t('common.send') + '</button>' +
           '</div>' +
         '</div>' +
         '<div class="chat-side" id="chatSide"></div>' +
@@ -40,14 +46,17 @@
     var html = '';
 
     if (history.length === 0) {
+      var hint = en()
+        ? "Hi! I'm your AI home-buying advisor. Tell me about your situation and I'll help you find a home."
+        : '你好！我是 AI 购房助手，告诉我你的情况，我来帮你找房子。';
       html += '' +
         '<div style="text-align:center;padding:30px 10px 20px;color:#999">' +
           '<div style="font-size:36px;margin-bottom:8px">🤖</div>' +
-          '<p>你好！我是 AI 购房助手，告诉我你的情况，我来帮你找房子。</p>' +
+          '<p>' + hint + '</p>' +
           '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center">' +
-            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'我想在上海买房，预算1500万左右\')">💰 预算1500万买房</button>' +
-            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'三口之家想买汤臣一品\')">🏠 汤臣一品</button>' +
-            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'首套房首付大概要多少\')">❓ 首付咨询</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'' + (en() ? 'I want to buy in Shanghai, budget around 15 million' : '我想在上海买房，预算1500万左右') + '\')">💰 ' + (en() ? 'Budget 15M' : '预算1500万买房') + '</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'' + (en() ? 'Family of three looking for high-rise lake view' : '三口之家想买湖景高层') + '\')">🏠 ' + (en() ? 'Lake view' : '湖景高层') + '</button>' +
+            '<button class="btn btn-outline btn-sm" onclick="quickAsk(\'' + (en() ? 'How much down payment for a first home?' : '首套房首付大概要多少') + '\')">❓ ' + (en() ? 'Down payment' : '首付咨询') + '</button>' +
           '</div>' +
         '</div>';
     }
@@ -56,7 +65,7 @@
       if (msg.role === 'user') {
         html += '' +
           '<div style="display:flex;gap:8px;flex-direction:row-reverse">' +
-            '<div class="chat-avatar avatar-user">我</div>' +
+            '<div class="chat-avatar avatar-user">' + t('common.me') + '</div>' +
             '<div class="chat-bubble user">' + Utils.esc(msg.content) + '</div>' +
           '</div>';
       } else if (msg.role === 'ai') {
@@ -81,36 +90,33 @@
 
   // AI 内容格式化：把 [propId] 变成可点击链接
   function formatAIContent(text) {
-    var esc = Utils.esc(text);
-    // 把 [tcyp-xxx] 替换成可点击的链接
-    esc = esc.replace(/\[([a-z0-9-]+)\]/gi, function (match, id) {
+    var escText = Utils.esc(text);
+    escText = escText.replace(/\[([a-z0-9-]+)\]/gi, function (match, id) {
       return '<a href="#/property/' + id + '" style="color:#1677ff;font-weight:600">[' + id + ']</a>';
     });
-    return esc;
+    return escText;
   }
 
   // 聊天内联房源卡片
   function renderInlinePropCard(propId) {
-    var props = API.loadProperties ? null : null; // sync cache
-    // 用缓存渲染（loadProperties 是 async，这里用同步缓存）
     var cached = global._propCache || [];
     var p = cached.find(function (x) { return x.id === propId; });
-    if (!p) return '<div class="ai-prop-card"><div class="ai-prop-card-head"><span>房源 ' + propId + '</span></div></div>';
+    if (!p) return '<div class="ai-prop-card"><div class="ai-prop-card-head"><span>' + t('common.detail') + ' ' + propId + '</span></div></div>';
 
     return '' +
       '<div class="ai-prop-card" onclick="location.hash=\'#/property/' + p.id + '\'">' +
         '<div class="ai-prop-card-head">' +
           '<span style="font-weight:600">' + Utils.esc(p.community) + ' ' + Utils.esc(p.building) + ' ' + Utils.esc(p.unit) + '</span>' +
-          '<span class="ai-prop-card-price">' + p.totalPrice + ' 万</span>' +
+          '<span class="ai-prop-card-price">' + App.I18n.wan(p.totalPrice) + '</span>' +
         '</div>' +
         '<div class="ai-prop-card-info">' +
-          p.area + '㎡ | ' + p.rooms.bedroom + '室' + p.rooms.livingRoom + '厅' + p.rooms.bathroom + '卫 | ' +
-          p.floor.level + '/' + p.floor.total + '层 | ' + p.orientation + ' | 单价' + p.unitPrice + '万/㎡' +
+          p.area + 'm² | ' + App.I18n.rooms(p.rooms) + ' | ' +
+          App.I18n.floor(p.floor) + ' | ' + p.orientation + ' | ' + t('common.unitPrice') + App.I18n.unitPrice(p.unitPrice) +
         '</div>' +
         '<div class="ai-prop-card-actions">' +
-          '<a class="btn btn-primary btn-sm" href="#/property/' + p.id + '">📖 详情</a>' +
-          '<a class="btn btn-outline btn-sm" href="#/messages/' + p.id + '">💬 联系卖家</a>' +
-          '<a class="btn btn-outline btn-sm" href="#/viewing/' + p.id + '">📅 预约看房</a>' +
+          '<a class="btn btn-primary btn-sm" href="#/property/' + p.id + '">📖 ' + t('common.detail') + '</a>' +
+          '<a class="btn btn-outline btn-sm" href="#/messages/' + p.id + '">💬 ' + t('common.contactSeller').replace('💬 ', '') + '</a>' +
+          '<a class="btn btn-outline btn-sm" href="#/viewing/' + p.id + '">📅 ' + (en() ? 'Book Viewing' : '预约看房') + '</a>' +
         '</div>' +
       '</div>';
   }
@@ -128,36 +134,36 @@
       }
     }
 
-    row('城市', p.city || p.targetCity);
-    row('家庭人口', p.familySize ? p.familySize + ' 人' : null);
-    row('首套', p.firstHome != null ? (p.firstHome ? '是' : '否') : null);
-    row('预算', p.budget ? p.budget + ' 万' : null);
-    row('首付', p.downPayment ? p.downPayment + ' 万' : null);
-    row('月供上限', p.monthlyPaymentMax ? p.monthlyPaymentMax + ' 元' : null);
-    row('户型', r.roomCount ? r.roomCount + ' 室' : null);
-    row('电梯', r.needElevator ? '必须有' : null);
-    row('面积', (r.minArea || p.minArea) ? (r.minArea || p.minArea) + '~' + (r.maxArea || '不限') + ' ㎡' : null);
-    row('楼层偏好', r.floorPreference);
-    row('朝向', r.orientation);
-    row('距地铁', r.metroDistance ? '≤' + r.metroDistance + ' 米' : null);
-    row('工作地', p.workAddress);
+    row(t('common.community'), App.I18n.city(p.city || p.targetCity));
+    row(t('home.f_view_t').replace('📅 ', ''), p.familySize ? p.familySize + (en() ? ' people' : ' 人') : null);
+    row(en() ? 'First home' : '首套', p.firstHome != null ? App.I18n.yesNo(p.firstHome) : null);
+    row(en() ? 'Budget' : '预算', p.budget ? App.I18n.wan(p.budget) : null);
+    row(en() ? 'Down payment' : '首付', p.downPayment ? App.I18n.wan(p.downPayment) : null);
+    row(en() ? 'Max monthly' : '月供上限', p.monthlyPaymentMax ? p.monthlyPaymentMax + (en() ? ' CNY' : ' 元') : null);
+    row(t('common.layout'), r.roomCount ? r.roomCount + (en() ? ' BR' : ' 室') : null);
+    row(en() ? 'Elevator' : '电梯', r.needElevator ? (en() ? 'Required' : '必须有') : null);
+    row(t('common.area'), (r.minArea || p.minArea) ? (r.minArea || p.minArea) + '~' + (r.maxArea || t('common.noData')) + ' m²' : null);
+    row(en() ? 'Floor preference' : '楼层偏好', r.floorPreference);
+    row(t('common.orientation'), r.orientation);
+    row(en() ? 'To metro' : '距地铁', r.metroDistance ? '≤' + r.metroDistance + ' m' : null);
+    row(en() ? 'Work location' : '工作地', p.workAddress);
 
     var badgeColor = completeness >= 80 ? 'tag-green' : completeness >= 40 ? 'tag-blue' : 'tag-gray';
-    var badgeText = completeness >= 80 ? '可以推荐房源' : completeness >= 40 ? '继续了解中' : '刚开始';
+    var badgeText = completeness >= 80 ? (en() ? 'Ready for matches' : '可以推荐房源') : completeness >= 40 ? (en() ? 'Learning more' : '继续了解中') : (en() ? 'Just started' : '刚开始');
 
     var html = '' +
       '<div class="profile-panel">' +
-        '<h4>👤 买家画像</h4>' +
-        (rows.length ? rows.join('') : '<p style="color:#999;padding:8px 0">还没有信息，去和 AI 对话吧</p>') +
+        '<h4>👤 ' + (en() ? 'Buyer Profile' : '买家画像') + '</h4>' +
+        (rows.length ? rows.join('') : '<p style="color:#999;padding:8px 0">' + (en() ? 'No information yet — start chatting with the AI' : '还没有信息，去和 AI 对话吧') + '</p>') +
         '<div class="profile-completeness">' +
           '<div class="profile-completeness-bar" style="width:' + completeness + '%"></div>' +
         '</div>' +
         '<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">' +
-          '<span class="profile-badge">完整度 ' + completeness + '%</span>' +
+          '<span class="profile-badge">' + (en() ? 'Completeness ' : '完整度 ') + completeness + '%</span>' +
           '<span class="tag ' + badgeColor + '">' + badgeText + '</span>' +
         '</div>' +
         '<div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">' +
-          '<a href="#/properties" class="btn btn-outline btn-block btn-sm">浏览全部房源</a>' +
+          '<a href="#/properties" class="btn btn-outline btn-block btn-sm">' + (en() ? 'Browse all listings' : '浏览全部房源') + '</a>' +
         '</div>' +
       '</div>';
 
@@ -183,7 +189,6 @@
         send();
       }
     };
-    // 自动高度
     input.oninput = function () {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 100) + 'px';
@@ -198,26 +203,24 @@
     renderMessages();
     renderSidePanel();
 
-    // 显示 AI 正在输入
     showTyping();
 
-    // 预加载房源缓存
     API.loadProperties().then(function (list) { global._propCache = list; }).catch(function () {});
 
-    // 调用 AI
     API.callAI(text).then(function (reply) {
       hideTyping();
-      // 提取房源 ID
       var propIds = API.extractPropertyIds(reply);
       Store.addChat({ role: 'ai', content: reply, propIds: propIds, time: new Date().toISOString() });
       renderMessages();
       renderSidePanel();
-      // 同步到服务器
       Store.syncToServer().catch(function () {});
     }).catch(function (err) {
       hideTyping();
       var errMsg = err.message || String(err);
-      Store.addChat({ role: 'ai', content: '⚠️ 抱歉，AI 服务暂时不可用：' + errMsg + '\n\n你可以先浏览房源，或稍后再试。', time: new Date().toISOString() });
+      var failText = en()
+        ? ('⚠️ Sorry, the AI service is temporarily unavailable: ' + errMsg + '\n\nYou can browse listings or try again later.')
+        : ('⚠️ 抱歉，AI 服务暂时不可用：' + errMsg + '\n\n你可以先浏览房源，或稍后再试。');
+      Store.addChat({ role: 'ai', content: failText, time: new Date().toISOString() });
       renderMessages();
     });
   }
@@ -229,7 +232,7 @@
     div.style.cssText = 'display:flex;gap:8px';
     div.innerHTML = '' +
       '<div class="chat-avatar avatar-ai">AI</div>' +
-      '<div class="chat-bubble ai" style="color:#999">正在思考中...</div>';
+      '<div class="chat-bubble ai" style="color:#999">' + (en() ? 'Thinking...' : '正在思考中...') + '</div>';
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
   }

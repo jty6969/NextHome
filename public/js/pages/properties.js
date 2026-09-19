@@ -1,4 +1,4 @@
-/* Nexthome - 在售房源页 */
+/* Nexthome - 在售房源页（双语） */
 (function (global) {
   'use strict';
 
@@ -18,6 +18,9 @@
   };
 
   App.Router.register('/properties', function () { render(); });
+
+  function t(key, vars) { return App.I18n ? App.I18n.t(key, vars) : key; }
+  function en() { return App.I18n && App.I18n.isEn(); }
 
   function render() {
     state.loading = true;
@@ -39,7 +42,7 @@
   function renderShell() {
     var html = '' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
-        '<h2 style="font-size:20px;font-weight:700">🏠 在售房源</h2>' +
+        '<h2 style="font-size:20px;font-weight:700">' + t('props.title') + '</h2>' +
         '<span class="tag tag-blue" id="propCount">-</span>' +
       '</div>' +
       '<div id="filterBar"></div>' +
@@ -54,35 +57,36 @@
     if (!bar) return;
 
     var sorts = [
-      { key: 'default',   label: '默认' },
-      { key: 'price',     label: sortLabel('price', '价格', '低→高', '高→低') },
-      { key: 'area',      label: sortLabel('area', '面积', '小→大', '大→小') },
-      { key: 'unitPrice', label: sortLabel('unitPrice', '单价', '低→高', '高→低') }
+      { key: 'default',   label: t('props.sortDefault') },
+      { key: 'price',     label: sortLabel('price', 'props.sortPrice', 'props.ascPrice', 'props.descPrice') },
+      { key: 'area',      label: sortLabel('area', 'props.sortArea', 'props.ascArea', 'props.descArea') },
+      { key: 'unitPrice', label: sortLabel('unitPrice', 'props.sortUnit', 'props.ascUnit', 'props.descUnit') }
     ];
     var sortHtml = sorts.map(function (s) {
       var cls = state.sortBy === s.key ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
       return '<button class="' + cls + '" onclick="propSort(\'' + s.key + '\')">' + s.label + '</button>';
     }).join('');
 
-    var beds = [{ v: 0, label: '全部' }, { v: 2, label: '2室' }, { v: 3, label: '3室' }, { v: 4, label: '4室' }];
+    var beds = [{ v: 0, label: t('common.all') }, { v: 2 }, { v: 3 }, { v: 4 }];
     var bedHtml = beds.map(function (b) {
+      var label = b.v ? t('props.bedN', { n: b.v }) : b.label;
       var cls = state.bedroom === b.v ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
-      return '<button class="' + cls + '" onclick="propFilterBed(' + b.v + ')">' + b.label + '</button>';
+      return '<button class="' + cls + '" onclick="propFilterBed(' + b.v + ')">' + label + '</button>';
     }).join('');
 
     bar.innerHTML = '' +
       '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;background:var(--bg-white);border-radius:var(--radius);box-shadow:var(--shadow)">' +
-        '<span style="font-size:13px;color:var(--text-light);font-weight:600">排序</span>' +
+        '<span style="font-size:13px;color:var(--text-light);font-weight:600">' + t('props.sort') + '</span>' +
         sortHtml +
         '<span style="width:1px;height:20px;background:var(--border);margin:0 8px"></span>' +
-        '<span style="font-size:13px;color:var(--text-light);font-weight:600">户型</span>' +
+        '<span style="font-size:13px;color:var(--text-light);font-weight:600">' + t('props.byBedrooms') + '</span>' +
         bedHtml +
       '</div>';
   }
 
-  function sortLabel(key, name, ascText, descText) {
-    if (state.sortBy !== key) return name;
-    return name + ' ' + (state.dir === 'asc' ? ascText : descText);
+  function sortLabel(key, nameKey, ascKey, descKey) {
+    if (state.sortBy !== key) return t(nameKey);
+    return t(nameKey) + ' ' + (state.dir === 'asc' ? t(ascKey) : t(descKey));
   }
 
   function getFilteredList() {
@@ -109,34 +113,34 @@
     var countEl = document.getElementById('propCount');
 
     if (state.loading) {
-      if (countEl) countEl.textContent = '加载中';
+      if (countEl) countEl.textContent = t('common.loading');
       grid.innerHTML = '' +
         '<div class="empty-state">' +
           '<div class="empty-state-icon">⏳</div>' +
-          '<p>正在加载房源...</p>' +
+          '<p>' + t('props.loading') + '</p>' +
         '</div>';
       return;
     }
 
     if (state.error) {
-      if (countEl) countEl.textContent = '0 套';
+      if (countEl) countEl.textContent = en() ? '0 units' : '0 套';
       grid.innerHTML = '' +
         '<div class="empty-state">' +
           '<div class="empty-state-icon">⚠️</div>' +
-          '<p>房源加载失败，请稍后重试</p>' +
+          '<p>' + t('props.loadFail') + '</p>' +
         '</div>';
       return;
     }
 
     var list = getFilteredList();
-    if (countEl) countEl.textContent = list.length + ' 套';
+    if (countEl) countEl.textContent = App.I18n.units(list.length);
 
     if (list.length === 0) {
       grid.innerHTML = '' +
         '<div class="empty-state">' +
           '<div class="empty-state-icon">🏚️</div>' +
-          '<p>暂无房源</p>' +
-          '<p style="font-size:12px;margin-top:4px">试试调整筛选条件</p>' +
+          '<p>' + t('props.empty') + '</p>' +
+          '<p style="font-size:12px;margin-top:4px">' + t('props.adjust') + '</p>' +
         '</div>';
       return;
     }
@@ -167,13 +171,13 @@
         '<div class="prop-card-img">' + Utils.esc(p.community) + '</div>' +
         '<div class="prop-card-body">' +
           '<div class="prop-card-title">' + Utils.esc(p.community) + ' ' + Utils.esc(p.building) + ' ' + Utils.esc(p.unit) + '</div>' +
-          '<div class="prop-card-price">' + Utils.formatPrice(p.totalPrice) +
-            ' <small>单价 ' + p.unitPrice + ' 万/㎡</small>' +
-            '<button onclick="togglePropFavorite(event,\'' + p.id + '\')" style="float:right;border:none;background:none;cursor:pointer;font-size:18px;line-height:1;padding:0;margin-top:2px" title="收藏">' + favIcon + '</button>' +
+          '<div class="prop-card-price">' + App.I18n.wan(p.totalPrice) +
+            ' <small>' + t('common.unitPrice') + ' ' + App.I18n.unitPrice(p.unitPrice) + '</small>' +
+            '<button onclick="togglePropFavorite(event,\'' + p.id + '\')" style="float:right;border:none;background:none;cursor:pointer;font-size:18px;line-height:1;padding:0;margin-top:2px" title="' + t('common.favAdd') + '">' + favIcon + '</button>' +
           '</div>' +
           '<div class="prop-card-meta">' +
-            p.area + ' ㎡ | ' + p.rooms.bedroom + '室' + p.rooms.livingRoom + '厅' + p.rooms.bathroom + '卫 | ' +
-            p.floor.level + '/' + p.floor.total + '层 | ' + Utils.esc(p.orientation) +
+            p.area + ' m² | ' + App.I18n.rooms(p.rooms) + ' | ' +
+            App.I18n.floor(p.floor) + ' | ' + Utils.esc(p.orientation) +
           '</div>' +
           '<div class="prop-card-tags">' + tags.join('') + '</div>' +
         '</div>' +
@@ -205,7 +209,7 @@
   global.togglePropFavorite = function (event, propId) {
     if (event && event.stopPropagation) event.stopPropagation();
     var added = Store.toggleFavorite(propId);
-    Utils.toast(added ? '已收藏' : '已取消收藏', added ? 'success' : 'warn');
+    Utils.toast(added ? t('common.favDone') : t('common.favUndone'), added ? 'success' : 'warn');
     renderGrid();
   };
 

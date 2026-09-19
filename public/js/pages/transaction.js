@@ -1,4 +1,4 @@
-/* Nexthome - 交易流程页 */
+/* Nexthome - 交易流程页（双语） */
 (function (global) {
   'use strict';
 
@@ -8,22 +8,22 @@
   var Router = App.Router;
   var API = global.API;
 
+  function t(key, vars) { return App.I18n ? App.I18n.t(key, vars) : key; }
+  function en() { return App.I18n && App.I18n.isEn(); }
+
   /* 基于 currentStep 的 AI 助手提示 */
-  var AI_TIPS = [
-    '恭喜达成意向！建议尽快支付定金锁定房源...',
-    '定金已付，下一步需在7天内完成网签备案。需准备：身份证、户口本、结婚证...',
-    '网签已完成，请尽快联系银行办理贷款审批...',
-    '贷款审批中，同时安排资金监管...',
-    '即将过户，请携带所有原件到交易中心...',
-    '过户完成！安排物业交接...'
-  ];
+  function aiTip(i) {
+    if (i < 0) i = 0;
+    if (i > 5) i = 5;
+    return t('tx.tip' + i);
+  }
 
   /* ============ 空状态 ============ */
   function renderEmpty() {
     return '<div class="empty-state">' +
       '<div class="empty-state-icon">📋</div>' +
-      '<p>还没有进行中的交易，去和卖家达成意向吧</p>' +
-      '<a href="#/properties" class="btn btn-primary mt-16">去看看房源</a>' +
+      '<p>' + t('tx.empty') + '</p>' +
+      '<a href="#/properties" class="btn btn-primary mt-16">' + t('tx.goProps') + '</a>' +
     '</div>';
   }
 
@@ -44,9 +44,9 @@
     if (i === currentStep && currentStep < total) {
       var sOk = step.sellerConfirmed, bOk = step.buyerConfirmed;
       confirmLine = '<div class="tx-step-desc" style="margin-top:4px">' +
-        '<span class="tag ' + (sOk ? 'tag-green' : 'tag-gray') + '" style="margin-right:6px">卖家' + (sOk ? '已确认 ✓' : '待确认') + '</span>' +
-        '<span class="tag ' + (bOk ? 'tag-green' : 'tag-gray') + '">买家' + (bOk ? '已确认 ✓' : '待确认') + '</span>' +
-        (sOk && !bOk ? '<span style="color:#e8840c;font-size:12px;margin-left:8px">卖家已确认，请尽快确认</span>' : '') +
+        '<span class="tag ' + (sOk ? 'tag-green' : 'tag-gray') + '" style="margin-right:6px">' + (sOk ? t('tx.sellerConfirmed') : t('tx.sellerWaiting')) + '</span>' +
+        '<span class="tag ' + (bOk ? 'tag-green' : 'tag-gray') + '">' + (bOk ? t('tx.buyerConfirmed') : t('tx.buyerWaiting')) + '</span>' +
+        (sOk && !bOk ? '<span style="color:#e8840c;font-size:12px;margin-left:8px">' + t('tx.sellerHurry') + '</span>' : '') +
         '</div>';
     }
     return '<div class="tx-step ' + state + '">' +
@@ -65,7 +65,7 @@
     var cur = tx.currentStep || 0;
     var total = steps.length;
     var completed = cur >= total;
-    var tipIdx = completed ? AI_TIPS.length - 1 : cur;
+    var tipIdx = completed ? 5 : cur;
 
     var html = '<div class="card card-pad mb-16">';
 
@@ -73,11 +73,11 @@
     html += '<div class="flex items-center justify-between mb-16">';
     html += '<div>';
     html += '<div style="font-size:16px;font-weight:600">' + Utils.esc(tx.propertyTitle) + '</div>';
-    html += '<div style="color:#999;font-size:12px;margin-top:2px">成交价</div>';
+    html += '<div style="color:#999;font-size:12px;margin-top:2px">' + t('tx.agreedPrice') + '</div>';
     html += '</div>';
     html += '<div class="text-right">';
-    html += '<div class="text-danger fw-bold" style="font-size:18px">' + Utils.formatPrice(tx.agreedPrice) + '</div>';
-    html += '<span class="tag ' + (completed ? 'tag-gray' : 'tag-green') + '">' + (completed ? '已完成' : '交易中') + '</span>';
+    html += '<div class="text-danger fw-bold" style="font-size:18px">' + App.I18n.wan(tx.agreedPrice) + '</div>';
+    html += '<span class="tag ' + (completed ? 'tag-gray' : 'tag-green') + '">' + (completed ? t('tx.completed') : t('tx.inProgress')) + '</span>';
     html += '</div>';
     html += '</div>';
 
@@ -88,8 +88,8 @@
 
     // AI 助手提示
     html += '<div class="ai-analysis-box">';
-    html += '<h4>💡 AI 助手提示</h4>';
-    html += '<p style="color:#444;font-size:13px;line-height:1.7">' + Utils.esc(AI_TIPS[tipIdx]) + '</p>';
+    html += '<h4>' + t('tx.aiTipTitle') + '</h4>';
+    html += '<p style="color:#444;font-size:13px;line-height:1.7">' + Utils.esc(aiTip(tipIdx)) + '</p>';
     html += '</div>';
 
     // 操作按钮（每个环节需买卖双方都确认才进入下一步）
@@ -97,18 +97,18 @@
     if (!completed) {
       var curStepObj = steps[cur];
       if (curStepObj.buyerConfirmed) {
-        html += '<span class="tag tag-yellow">✅ 你已确认「' + Utils.esc(curStepObj.title) + '」，等待卖家确认</span>';
+        html += '<span class="tag tag-yellow">' + t('tx.youConfirmedWait', { step: Utils.esc(curStepObj.title) }) + '</span>';
       } else {
-        html += '<button class="btn btn-primary" onclick="txConfirm(\'' + tx.propertyId + '\')">✅ 我确认完成：' + Utils.esc(curStepObj.title) + '</button>';
+        html += '<button class="btn btn-primary" onclick="txConfirm(\'' + tx.propertyId + '\')">' + t('tx.confirmBtn', { step: Utils.esc(curStepObj.title) }) + '</button>';
         if (curStepObj.sellerConfirmed) {
-          html += '<span class="tag tag-orange" style="align-self:center">卖家已确认，只差你确认</span>';
+          html += '<span class="tag tag-orange" style="align-self:center">' + t('tx.sellerOnlyYou') + '</span>';
         } else {
-          html += '<span class="tag tag-gray" style="align-self:center">需双方确认后进入下一步</span>';
+          html += '<span class="tag tag-gray" style="align-self:center">' + t('tx.needBoth') + '</span>';
         }
       }
     }
-    html += '<button class="btn btn-outline" onclick="txAsk(\'' + tx.propertyId + '\')">💬 向 AI 提问</button>';
-    html += '<button class="btn btn-outline" onclick="txContact()">💬 联系卖家</button>';
+    html += '<button class="btn btn-outline" onclick="txAsk(\'' + tx.propertyId + '\')">' + t('tx.askAI') + '</button>';
+    html += '<button class="btn btn-outline" onclick="txContact()">' + t('tx.contactSeller') + '</button>';
     html += '</div>';
 
     html += '</div>';
@@ -119,8 +119,8 @@
   function render() {
     var transactions = Store.get().transactions || [];
     var html = '<div class="flex items-center justify-between mb-16">' +
-      '<h2 style="font-size:20px;font-weight:600">📋 交易流程</h2>' +
-      '<span class="tag tag-blue">共 ' + transactions.length + ' 笔交易</span>' +
+      '<h2 style="font-size:20px;font-weight:600">' + t('tx.title') + '</h2>' +
+      '<span class="tag tag-blue">' + t('tx.total', { n: transactions.length }) + '</span>' +
     '</div>';
 
     if (!transactions.length) {
@@ -134,27 +134,27 @@
 
   /* ============ 买家确认当前环节（需卖家也确认才推进） ============ */
   global.txConfirm = function (propId) {
-    var tx = Store.get().transactions.find(function (t) { return t.propertyId === propId; });
+    var tx = Store.get().transactions.find(function (x) { return x.propertyId === propId; });
     if (!tx) return;
     var steps = tx.steps || [];
     if (tx.currentStep >= steps.length) {
-      Utils.toast('交易已完成所有步骤', 'warn');
+      Utils.toast(t('tx.allDone'), 'warn');
       return;
     }
     var stepTitle = steps[tx.currentStep].title;
-    if (!window.confirm('确认已完成「' + stepTitle + '」？\n确认后需卖家也确认，交易才会进入下一环节。')) return;
+    if (!window.confirm(t('tx.confirmDialog1', { step: stepTitle }) + '\n' + t('tx.confirmDialog2'))) return;
 
     App.Auth.request('/api/deal/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ propertyId: propId })
+      body: JSON.stringify({ propertyId: propId, language: en() ? 'en' : 'zh' })
     }).then(function (r) {
       return r.json().then(function (d) {
-        if (!r.ok) throw new Error(d.error || '确认失败');
+        if (!r.ok) throw new Error(d.error || t('auth.opFailed'));
         return d;
       });
     }).then(function (d) {
-      Utils.toast(d.advanced ? '🎉 双方已确认，交易进入下一环节' : '已确认，等待卖家确认', 'success');
+      Utils.toast(d.advanced ? t('tx.advanced') : t('tx.waitSeller'), 'success');
       Store.loadFromServer().then(render).catch(render);
     }).catch(function (err) {
       Utils.toast(err.message, 'error');
@@ -163,8 +163,8 @@
 
   /* ============ 向 AI 提问 ============ */
   global.txAsk = function (propId) {
-    var tx = Store.get().transactions.find(function (t) { return t.propertyId === propId; });
-    var question = window.prompt('向 AI 提问关于此交易的问题：');
+    var tx = Store.get().transactions.find(function (x) { return x.propertyId === propId; });
+    var question = window.prompt(t('tx.askPrompt'));
     if (question === null) return;
     question = (question || '').trim();
     if (!question) return;
@@ -172,19 +172,19 @@
     var context = '';
     if (tx) {
       var curStep = tx.steps && tx.steps[tx.currentStep];
-      context = '我正在交易房源【' + tx.propertyTitle + '】，成交价 ' +
-        Utils.formatPrice(tx.agreedPrice) + '，当前进度：' +
-        (curStep ? curStep.title : '已完成') + '。';
+      context = t('tx.ctx1') + tx.propertyTitle + t('tx.ctx2') +
+        App.I18n.wan(tx.agreedPrice) + t('tx.ctx3') +
+        (curStep ? curStep.title : t('tx.ctxDone')) + '。';
     }
-    var full = context + '\n我的问题：' + question;
+    var full = context + '\n' + t('tx.myQuestion') + question;
 
-    Utils.showLoading('AI 思考中...');
+    Utils.showLoading(t('tx.aiThinking'));
     API.callAI(full).then(function (resp) {
       Utils.hideLoading();
       window.alert(resp);
     }).catch(function (err) {
       Utils.hideLoading();
-      Utils.toast('AI 请求失败：' + (err && err.message ? err.message : ''), 'error');
+      Utils.toast(t('tx.aiFail') + (err && err.message ? err.message : ''), 'error');
     });
   };
 

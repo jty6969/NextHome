@@ -11,11 +11,14 @@
     <header class="navbar">
       <a href="#/" class="logo">🏠 Nexthome</a>
       <nav class="nav-links" id="navLinks"></nav>
-      <div id="navUser" style="margin-left:auto;display:flex;align-items:center"></div>
+      <div style="margin-left:auto;display:flex;align-items:center">
+        <div id="navLang"></div>
+        <div id="navUser" style="display:flex;align-items:center"></div>
+      </div>
     </header>
     <main id="page" class="page-container"></main>
     <footer class="footer">
-      <p>© 2026 Nexthome · AI 购房助手 — 仅供测试参考，不构成交易建议</p>
+      <p id="footerText">© 2026 Nexthome · AI 购房助手 — 仅供测试参考，不构成交易建议</p>
     </footer>
     <div id="toast" class="toast"></div>
     <div id="loading" class="loading-overlay" style="display:none">
@@ -24,6 +27,7 @@
     </div>
   </div>
   <script src="/js/app.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/pages/auth.js"></script>
   <script src="/js/pages/home.js"></script>

@@ -5,6 +5,11 @@
   var TOKEN_KEY = 'nexthome_token';
   var USER_KEY = 'nexthome_user';
 
+  // 双语文案（I18n 由 i18n.js 加载，未加载时用 fallback）
+  function i18nText(key, fallback) {
+    return (global.App && App.I18n) ? App.I18n.t(key) : fallback;
+  }
+
   /* ============ Auth（账号/会话） ============ */
   var Auth = {
     get token() { return localStorage.getItem(TOKEN_KEY); },
@@ -28,7 +33,7 @@
         body: JSON.stringify({ username: username, password: password })
       }).then(function (r) {
         return r.json().then(function (d) {
-          if (!r.ok) throw new Error(d.error || '登录失败');
+          if (!r.ok) throw new Error(d.error || i18nText('auth.loginFail', '登录失败'));
           return d;
         });
       }).then(function (d) {
@@ -42,7 +47,7 @@
         body: JSON.stringify({ username: username, password: password, name: name })
       }).then(function (r) {
         return r.json().then(function (d) {
-          if (!r.ok) throw new Error(d.error || '注册失败');
+          if (!r.ok) throw new Error(d.error || i18nText('auth.registerFail', '注册失败'));
           return d;
         });
       }).then(function (d) {
@@ -221,12 +226,16 @@
       this._toastTimer = setTimeout(function () { el.className = 'toast'; }, 3000);
     },
     showLoading: function (text) {
-      document.getElementById('loadingText').textContent = text || '加载中...';
+      document.getElementById('loadingText').textContent = text || i18nText('common.loading', '加载中...');
       document.getElementById('loading').style.display = 'flex';
     },
     hideLoading: function () { document.getElementById('loading').style.display = 'none'; },
 
     formatPrice: function (w) { return w + ' 万'; },
+    // 单价格式化（跟随语言）
+    formatUnitPrice: function (p) {
+      return App.I18n ? App.I18n.unitPrice(p) : (p + ' 万/㎡');
+    },
     formatDate: function (d) {
       if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
       var dt = new Date(d);
@@ -289,6 +298,8 @@
 
       // 导航高亮
       renderNav();
+      // 语言切换按钮（标签随语言变化，需重绘）
+      if (App.I18n && App.I18n.renderSwitch) App.I18n.renderSwitch();
       document.querySelectorAll('.nav-links a').forEach(function (a) {
         var href = a.getAttribute('href').slice(1);
         a.classList.toggle('active', path === href || (href !== '/' && path.indexOf(href) === 0));
@@ -305,7 +316,7 @@
           }
         }
         handler = this.routes['/'];
-        if (!handler) { document.getElementById('page').innerHTML = '<div class="empty-state">页面不存在</div>'; return; }
+        if (!handler) { document.getElementById('page').innerHTML = '<div class="empty-state">' + i18nText('common.pageNotFound', '页面不存在') + '</div>'; return; }
         handler();
         return;
       }
@@ -314,23 +325,28 @@
   };
 
   /* ============ 导航栏用户信息 ============ */
+  // key 为 i18n 字典键，渲染时翻译
   var NAV_ITEMS = [
-    { path: '/', label: '首页' },
-    { path: '/chat', label: 'AI 对话' },
-    { path: '/properties', label: '房源' },
-    { path: '/messages', label: '消息' },
-    { path: '/viewing', label: '看房' },
-    { path: '/transaction', label: '交易' }
+    { path: '/', key: 'nav.home' },
+    { path: '/chat', key: 'nav.chat' },
+    { path: '/properties', key: 'nav.properties' },
+    { path: '/messages', key: 'nav.messages' },
+    { path: '/viewing', key: 'nav.viewing' },
+    { path: '/transaction', key: 'nav.transaction' }
   ];
   var SELLER_NAV_ITEMS = [
-    { path: '/seller', label: '卖家中心' }
+    { path: '/seller', key: 'nav.seller' }
   ];
+
+  function navLabel(item) {
+    return App.I18n ? App.I18n.t(item.key) : item.key;
+  }
 
   function renderNav() {
     var u = Auth.getUser();
     var items = (u && u.role === 'seller') ? SELLER_NAV_ITEMS : NAV_ITEMS;
     document.getElementById('navLinks').innerHTML = items.map(function (item) {
-      return '<a href="#' + item.path + '">' + item.label + '</a>';
+      return '<a href="#' + item.path + '">' + navLabel(item) + '</a>';
     }).join('');
   }
 
@@ -339,13 +355,13 @@
     if (!el) return;
     var u = Auth.getUser();
     if (u) {
-      var roleTag = u.role === 'seller' ? '<span class="tag tag-orange" style="margin-right:8px">卖家</span>'
-        : u.role === 'admin' ? '<span class="tag tag-blue" style="margin-right:8px">管理员</span>' : '';
+      var roleTag = u.role === 'seller' ? '<span class="tag tag-orange" style="margin-right:8px">' + i18nText('common.seller', '卖家') + '</span>'
+        : u.role === 'admin' ? '<span class="tag tag-blue" style="margin-right:8px">' + i18nText('common.admin', '管理员') + '</span>' : '';
       el.innerHTML = roleTag +
         '<span style="color:#666;font-size:13px;margin-right:10px">👤 ' + Utils.esc(u.name) + '</span>' +
-        '<button class="btn btn-outline btn-sm" onclick="App.doLogout()">退出登录</button>';
+        '<button class="btn btn-outline btn-sm" onclick="App.doLogout()">' + i18nText('common.logout', '退出登录') + '</button>';
     } else {
-      el.innerHTML = '<a href="#/login" class="btn btn-outline btn-sm">登录 / 注册</a>';
+      el.innerHTML = '<a href="#/login" class="btn btn-outline btn-sm">' + i18nText('common.loginRegister', '登录 / 注册') + '</a>';
     }
   }
 
@@ -356,7 +372,7 @@
 
     doLogout: function () {
       Auth.logout();
-      Utils.toast('已退出登录', 'success');
+      Utils.toast(i18nText('common.loggedOut', '已退出登录'), 'success');
       setTimeout(function () { location.hash = '#/login'; }, 300);
     },
 

@@ -1,4 +1,4 @@
-/* Nexthome - 看房预约页 */
+/* Nexthome - 看房预约页（双语） */
 (function (global) {
   'use strict';
 
@@ -9,13 +9,20 @@
   var Router = App.Router;
 
   /* ============ 状态元数据 ============ */
-  var STATUS_META = {
-    pending: { label: '待确认', tag: 'tag-yellow' },
-    confirmed: { label: '已确认', tag: 'tag-green' },
-    completed: { label: '已完成', tag: 'tag-gray' },
-    cancelled: { label: '已取消', tag: 'tag-red' }
-  };
+  function statusMeta(status) {
+    var map = {
+      pending: ['view.s_pending', 'tag-yellow'],
+      confirmed: ['view.s_confirmed', 'tag-green'],
+      completed: ['view.s_completed', 'tag-gray'],
+      cancelled: ['view.s_cancelled', 'tag-red']
+    };
+    var item = map[status] || map.pending;
+    return { label: t(item[0]), tag: item[1] };
+  }
   var STATUS_ORDER = ['pending', 'confirmed', 'completed', 'cancelled'];
+
+  function t(key, vars) { return App.I18n ? App.I18n.t(key, vars) : key; }
+  function en() { return App.I18n && App.I18n.isEn(); }
 
   /* ============ 工具 ============ */
   function buildPropertyTitle(p) {
@@ -26,17 +33,17 @@
 
   /* ============ 看房预约列表页 ============ */
   function renderRecordCard(rec) {
-    var meta = STATUS_META[rec.status] || STATUS_META.pending;
+    var meta = statusMeta(rec.status);
     var esc = Utils.esc;
 
     var actions = '';
     if (rec.status === 'pending') {
-      actions = '<button class="btn btn-danger btn-sm" data-action="cancel" data-id="' + esc(rec.id) + '">取消预约</button>';
+      actions = '<button class="btn btn-danger btn-sm" data-action="cancel" data-id="' + esc(rec.id) + '">' + t('view.cancel') + '</button>';
     } else if (rec.status === 'confirmed') {
-      actions = '<button class="btn btn-outline btn-sm" data-action="messages">导航到消息</button>';
+      actions = '<button class="btn btn-outline btn-sm" data-action="messages">' + t('view.toMessages') + '</button>';
     }
 
-    var noteText = rec.note ? esc(rec.note) : '无';
+    var noteText = rec.note ? esc(rec.note) : t('common.none');
 
     return ''
       + '<div class="card card-pad" style="margin-bottom:12px;">'
@@ -47,7 +54,7 @@
       +   '<div class="text-light" style="font-size:12px;">'
       +     '📅 ' + esc(Utils.formatDate(rec.date)) + '　⏰ ' + esc(rec.timeSlot)
       +   '</div>'
-      +   '<div class="text-light" style="font-size:12px;margin-top:4px;">留言：' + noteText + '</div>'
+      +   '<div class="text-light" style="font-size:12px;margin-top:4px;">' + t('view.noteLabel') + noteText + '</div>'
       +   (actions ? '<div class="mt-8 flex gap-8">' + actions + '</div>' : '')
       + '</div>';
   }
@@ -60,26 +67,26 @@
       return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0);
     });
 
-    var html = '<h2 class="mb-16">📅 看房预约</h2>';
-    html += '<h3 class="mb-16">我的看房安排</h3>';
+    var html = '<h2 class="mb-16">' + t('view.title') + '</h2>';
+    html += '<h3 class="mb-16">' + t('view.mySchedule') + '</h3>';
 
     if (!records.length) {
       html += '<div class="card card-pad">'
         +   '<div class="empty-state">'
         +     '<div class="empty-state-icon">📭</div>'
-        +     '<p>还没有看房预约，去房源页预约吧</p>'
-        +     '<p class="mt-16"><a href="#/properties">去房源页 →</a></p>'
+        +     '<p>' + t('view.empty') + '</p>'
+        +     '<p class="mt-16"><a href="#/properties">' + t('view.goProps') + '</a></p>'
         +   '</div>'
         + '</div>';
     } else {
       STATUS_ORDER.forEach(function (status) {
         var group = records.filter(function (r) { return r.status === status; });
         if (!group.length) return;
-        var meta = STATUS_META[status];
+        var meta = statusMeta(status);
         html += '<div class="mb-16">'
           + '<div class="mb-8 flex items-center gap-8">'
           +   '<span class="tag ' + meta.tag + '">' + meta.label + '</span>'
-          +   '<span class="text-light" style="font-size:12px;">' + group.length + ' 条</span>'
+          +   '<span class="text-light" style="font-size:12px;">' + t('view.recordsN', { n: group.length }) + '</span>'
           + '</div>';
         group.forEach(function (rec) {
           html += renderRecordCard(rec);
@@ -104,7 +111,7 @@
     if (action === 'cancel') {
       var id = btn.getAttribute('data-id');
       Store.updateViewing(id, { status: 'cancelled' });
-      Utils.toast('已取消预约', 'warn');
+      Utils.toast(t('view.cancelled'), 'warn');
       renderListPage();
     } else if (action === 'messages') {
       location.hash = '#/messages';
@@ -114,14 +121,14 @@
   /* ============ 预约日历页 ============ */
   function renderBookingPage(propId) {
     var pageEl = document.getElementById('page');
-    pageEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>加载中...</p></div>';
+    pageEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>' + t('common.loading') + '</p></div>';
 
     API.loadProperty(propId).then(function (p) {
       if (!p) {
         pageEl.innerHTML = '<div class="empty-state">'
           + '<div class="empty-state-icon">❓</div>'
-          + '<p>未找到该房源</p>'
-          + '<p class="mt-16"><a href="#/properties">返回房源列表</a></p>'
+          + '<p>' + t('view.notFound') + '</p>'
+          + '<p class="mt-16"><a href="#/properties">' + t('view.backProps') + '</a></p>'
           + '</div>';
         return;
       }
@@ -130,24 +137,24 @@
       var propTitle = buildPropertyTitle(p);
       var esc = Utils.esc;
 
-      var html = '<h2 class="mb-16">📅 预约看房</h2>';
+      var html = '<h2 class="mb-16">' + t('view.title') + '</h2>';
 
       // 房源信息
       html += '<div class="card card-pad mb-16">'
         +   '<div class="fw-600" style="font-size:16px;">' + esc(propTitle) + '</div>'
         +   '<div class="text-light" style="font-size:12px;margin-top:4px;">'
-        +     '卖家：' + esc(p.seller ? p.seller.name : '—')
+        +     t('view.sellerLabel') + esc(p.seller ? p.seller.name : '—')
         +   '</div>'
         + '</div>';
 
       // 选择时段
       html += '<div class="card card-pad">';
-      html += '<h3 class="mb-8">选择看房时间</h3>';
+      html += '<h3 class="mb-8">' + t('view.chooseTime') + '</h3>';
 
       if (!slots.length) {
         html += '<div class="empty-state">'
           + '<div class="empty-state-icon">🙅</div>'
-          + '<p>卖家暂未开放可预约时段</p>'
+          + '<p>' + t('view.noSlots') + '</p>'
           + '</div>';
       } else {
         html += '<div class="form-group">';
@@ -164,11 +171,11 @@
         html += '</div>';
 
         html += '<div class="form-group">'
-          + '<label class="form-label">留言（可选）</label>'
-          + '<textarea class="form-textarea" id="viewingNote" placeholder="给卖家留言，例如希望了解哪些细节..."></textarea>'
+          + '<label class="form-label">' + t('view.noteOpt') + '</label>'
+          + '<textarea class="form-textarea" id="viewingNote" placeholder="' + t('view.notePh') + '"></textarea>'
           + '</div>';
 
-        html += '<button class="btn btn-primary btn-block" id="submitViewing">提交预约</button>';
+        html += '<button class="btn btn-primary btn-block" id="submitViewing">' + t('view.submit') + '</button>';
       }
 
       html += '</div>';
@@ -178,7 +185,7 @@
     }).catch(function (err) {
       pageEl.innerHTML = '<div class="empty-state">'
         + '<div class="empty-state-icon">⚠️</div>'
-        + '<p>加载失败：' + Utils.esc(err && err.message ? err.message : '未知错误') + '</p>'
+        + '<p>' + t('view.loadFail') + Utils.esc(err && err.message ? err.message : t('common.none')) + '</p>'
         + '</div>';
     });
   }
@@ -190,7 +197,7 @@
     submitBtn.addEventListener('click', function () {
       var selected = root.querySelector('input[name="slot"]:checked');
       if (!selected) {
-        Utils.toast('请先选择看房时间', 'warn');
+        Utils.toast(t('view.chooseFirst'), 'warn');
         return;
       }
       var parts = selected.value.split('|');
@@ -212,11 +219,11 @@
       Store.addViewing(record);
       Store.addMessage(property.id, {
         role: 'system',
-        content: '看房预约：' + date + ' ' + timeSlot,
+        content: t('view.appointment') + date + ' ' + timeSlot,
         time: new Date().toISOString()
       });
 
-      Utils.toast('预约已提交，等待卖家确认', 'success');
+      Utils.toast(t('view.submitted'), 'success');
       Router.navigate('/viewing');
     });
   }
