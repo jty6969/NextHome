@@ -145,6 +145,12 @@ img { max-width: 100%; }
 .chat-bubble.buyer { align-self: flex-end; background: #e6f4ff; border: 1px solid #91caff; border-bottom-right-radius: 2px; }
 .chat-input-bar { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
 .chat-input-bar textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: inherit; max-height: 100px; }
+.chat-voice-btn { min-width: 40px; padding: 0 10px; font-size: 16px; }
+.chat-voice-btn.is-listening { color: #d9363e; border-color: #ffb3b8; background: #fff1f0; animation: voice-pulse 1.2s ease-in-out infinite; }
+.chat-voice-status { min-height: 0; margin: -6px 12px 8px; color: var(--primary); font-size: 12px; }
+.chat-voice-status:empty { display: none; }
+.chat-voice-status.is-error { color: #d9363e; }
+@keyframes voice-pulse { 50% { opacity: .55; } }
 .chat-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
 .avatar-ai { background: var(--primary); }
 .avatar-user { background: var(--success); }

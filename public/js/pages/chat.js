@@ -22,8 +22,10 @@
           '<div class="chat-messages" id="chatMessages"></div>' +
           '<div class="chat-input-bar">' +
             '<textarea id="chatInput" placeholder="' + inputPh + '" rows="1"></textarea>' +
+            '<button class="btn btn-outline chat-voice-btn" id="chatVoice" type="button" title="' + t('chat.voiceInput') + '" aria-label="' + t('chat.voiceInput') + '" aria-pressed="false">🎙️</button>' +
             '<button class="btn btn-primary" id="chatSend">' + t('common.send') + '</button>' +
           '</div>' +
+          '<div class="chat-voice-status" id="chatVoiceStatus" aria-live="polite"></div>' +
         '</div>' +
         '<div class="chat-side" id="chatSide"></div>' +
       '</div>';
@@ -173,6 +175,7 @@
   function bindInput() {
     var input = document.getElementById('chatInput');
     var sendBtn = document.getElementById('chatSend');
+    var voiceBtn = document.getElementById('chatVoice');
 
     function send() {
       var text = input.value.trim();
@@ -190,9 +193,94 @@
       }
     };
     input.oninput = function () {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+      resizeInput(input);
     };
+
+    bindVoiceInput(input, voiceBtn);
+  }
+
+  function resizeInput(input) {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+  }
+
+  function bindVoiceInput(input, voiceBtn) {
+    var Recognition = global.SpeechRecognition || global.webkitSpeechRecognition;
+    var status = document.getElementById('chatVoiceStatus');
+    if (!Recognition) {
+      voiceBtn.disabled = true;
+      voiceBtn.title = t('chat.voiceUnsupported');
+      voiceBtn.setAttribute('aria-label', t('chat.voiceUnsupported'));
+      showVoiceStatus(status, t('chat.voiceUnsupported'), true);
+      return;
+    }
+
+    var recognition = null;
+    var listening = false;
+    var initialText = '';
+    var finalText = '';
+
+    function setListening(active) {
+      listening = active;
+      voiceBtn.classList.toggle('is-listening', active);
+      voiceBtn.setAttribute('aria-pressed', String(active));
+      voiceBtn.textContent = active ? '⏹' : '🎙️';
+      voiceBtn.title = active ? t('chat.voiceStop') : t('chat.voiceInput');
+      voiceBtn.setAttribute('aria-label', voiceBtn.title);
+      if (active) showVoiceStatus(status, t('chat.voiceListening'));
+      else if (!status.classList.contains('is-error')) status.textContent = '';
+    }
+
+    voiceBtn.onclick = function () {
+      if (listening && recognition) {
+        recognition.stop();
+        return;
+      }
+
+      recognition = new Recognition();
+      recognition.lang = en() ? 'en-US' : 'zh-CN';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      initialText = input.value.trim();
+      finalText = '';
+
+      recognition.onstart = function () { setListening(true); };
+      recognition.onresult = function (event) {
+        var interimText = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          var transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalText += transcript;
+          else interimText += transcript;
+        }
+        input.value = joinVoiceText(initialText, finalText + interimText);
+        resizeInput(input);
+      };
+      recognition.onerror = function (event) {
+        var message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+          ? t('chat.voiceNoPermission')
+          : t('chat.voiceError');
+        showVoiceStatus(status, message, true);
+      };
+      recognition.onend = function () {
+        if (finalText) input.value = joinVoiceText(initialText, finalText);
+        resizeInput(input);
+        setListening(false);
+      };
+
+      try { recognition.start(); }
+      catch (err) { showVoiceStatus(status, t('chat.voiceError'), true); }
+    };
+  }
+
+  function joinVoiceText(existing, spoken) {
+    if (!existing) return spoken.trim();
+    if (!spoken) return existing;
+    return existing + (/[。！？.!?]$/.test(existing) ? ' ' : '，') + spoken.trim();
+  }
+
+  function showVoiceStatus(status, message, isError) {
+    status.textContent = message;
+    status.classList.toggle('is-error', !!isError);
   }
 
   function sendToAI(text) {
