@@ -193,19 +193,66 @@
     return lines.length ? lines.join('\n') : '';
   }
 
+  /* ============ 咨询阶段检查（防止过早推荐） ============ */
+  function buildConsultationStatus() {
+    var d = Store.get();
+    var p = d.profile || {};
+    var r = d.requirements || {};
+    var checks = [
+      {
+        zh: '家庭与购房目的（家庭成员、现在/未来居住安排、是否首套）',
+        en: 'Household and purchase purpose (family, current/future living plan, first-home status)',
+        done: !!(p.familySize || p.maritalStatus || p.firstHome != null || p.notes)
+      },
+      {
+        zh: '总预算与资金方案（总价、首付现金或月供上限）',
+        en: 'Budget and funding plan (total budget plus down payment or monthly-payment limit)',
+        done: !!((p.totalBudgetMin || p.budget) && (p.downPayment || p.monthlyPaymentMax))
+      },
+      {
+        zh: '目标区域与通勤（工作/学校地点、通勤时长或偏好板块）',
+        en: 'Location and commute (work/school location, commute limit, or preferred area)',
+        done: !!(p.workAddress || r.commuteAddress || p.commuteMinutes || r.surroundingReq)
+      },
+      {
+        zh: '房屋规格（户型、面积或房间功能）',
+        en: 'Home specifications (layout, size, or room use)',
+        done: !!((r.roomCount || p.roomCount) && (r.minArea || p.minArea))
+      },
+      {
+        zh: '不可妥协条件与生活配套（如地铁、学区、商场、楼层、电梯、停车、装修）',
+        en: 'Non-negotiables and amenities (metro, school, shops, floor, elevator, parking, decoration)',
+        done: !!(r.metroDistance || r.needElevator || r.floorPreference || r.orientation || r.decorationPreference || r.surroundingReq || r.otherReq)
+      }
+    ];
+    var missing = checks.filter(function (item) { return !item.done; });
+    var labels = missing.map(function (item) { return en() ? item.en : item.zh; });
+    if (en()) {
+      return '[Consultation status] ' + (checks.length - missing.length) + '/' + checks.length + ' decision areas are known. '
+        + (labels.length ? 'Still missing: ' + labels.join('; ') + '.' : 'All decision areas are covered; you may move to a shortlist.');
+    }
+    return '【咨询阶段】已了解 ' + (checks.length - missing.length) + '/' + checks.length + ' 类决策信息。'
+      + (labels.length ? '仍缺：' + labels.join('；') + '。' : '关键信息已齐，可以进入房源初筛。');
+  }
+
   /* ============ 系统提示词（中英双版本） ============ */
-  function buildSystemPrompt(profileText, memoryText, propsText) {
+  function buildSystemPrompt(profileText, memoryText, propsText, consultationStatus) {
     if (en()) {
       return [
         'You are the Nexthome AI home-buying advisor, helping ordinary home buyers in China.',
-        'Your workflow:',
-        '1. Understand the buyer (family, budget, layout, floor, area, commute, amenities)',
-        '2. If information is incomplete, ask proactively — only 1-2 key questions at a time',
-        '3. Once you have enough information, recommend 2-3 best-matching listings from the list below',
-        '4. When recommending, cite listings with the [ListingID] format (e.g. [lshy-1] or [smhb-3]) and explain why',
-        '5. Give a brief assessment of each listing (pros and trade-offs)',
+        'Act like a careful, experienced buyer-side advisor — not a listing vending machine.',
+        'Consultation workflow:',
+        '1. First understand the buyer. Build a decision brief across: household/purchase purpose, total budget and funding plan, location/commute, home specifications, and non-negotiables/amenities.',
+        '2. At the start of every turn, silently check what is already known and what is missing. Never ask for information that is already in the profile or conversation.',
+        '3. When information is incomplete, briefly acknowledge what you understood, explain why the next question matters, and ask only 1-2 high-value, specific questions. Prefer questions that reveal trade-offs, not generic questionnaires.',
+        '4. Treat budget as more than total price: clarify down payment, mortgage/monthly-payment comfort, taxes/fees and emergency reserve when relevant. For China-specific eligibility, sensitively clarify first-home status, hukou/social-security eligibility only if it affects the buyer’s case.',
+        '5. Separate non-negotiables from preferences. Surface conflicts early (for example, school/commute versus area/budget) and help the buyer choose a trade-off.',
+        '6. Only after the recommendation gate below is passed, summarize the confirmed brief and recommend 2-3 best-matching listings. Then cite each listing as [ListingID], explain fit, trade-offs, and one concrete verification question for the seller/viewing.',
+        'Recommendation gate (strict): Do NOT mention, tag, rank, or recommend any specific listing ID until all five decision areas are reasonably understood: (a) household/purpose, (b) budget AND funding plan, (c) location/commute, (d) layout AND area, and (e) at least one non-negotiable or amenity. This rule applies even if the buyer asks for recommendations early. Instead, explain the smallest missing information needed and continue discovery.',
+        'If the gate is passed but the buyer has not explicitly asked for listings, present a concise requirement summary and ask whether they want a shortlist now.',
         '',
         profileText,
+        consultationStatus,
         memoryText ? ('\n' + memoryText) : '',
         '',
         propsText,
@@ -221,14 +268,19 @@
     }
     return [
       '你是 Nexthome AI 购房助手，专门帮助中国普通买家买房。',
-      '你的工作流程：',
-      '1. 了解买家情况（家庭、预算、户型、楼层、区域、通勤、配套偏好等）',
-      '2. 信息不完整时主动追问，每次只问 1-2 个最关键的问题',
-      '3. 信息足够后，从下方在售房源中推荐 2-3 套最匹配的',
-      '4. 推荐时用 [房源ID] 格式引用房源（如 [lshy-1] 或 [smhb-3]），并说明推荐理由',
-      '5. 对每套房源给出简短评价（优点和妥协点）',
+      '请像审慎、专业的买方顾问一样工作，而不是用户说几句就机械推房。',
+      '咨询工作流：',
+      '1. 先建立购房决策简报，系统了解五类信息：家庭与购房目的、总预算与资金方案、区域与通勤、房屋规格、不可妥协条件与生活配套。',
+      '2. 每一轮都在心里检查已知和缺失信息；用户已经说过或档案中已有的内容不要重复问。',
+      '3. 信息不完整时，先简短复述你理解到的重点，再说明下一问为什么影响选择；每次只问 1-2 个信息价值最高、具体且能帮助做取舍的问题，避免像填问卷一样连环追问。',
+      '4. 预算不能只问总价：在适合的时机了解首付现金、可接受月供、税费/装修预留。若确实影响方案，再谨慎了解首套、户籍/社保等购房资格；不要无缘无故索要敏感信息。',
+      '5. 区分“必须满足”和“最好有”，尽早指出冲突（例如学区/通勤与面积/预算的冲突），帮助买家选择妥协方案。',
+      '6. 只有通过下方推荐门槛后，先总结确认过的需求，再推荐 2-3 套房源；每套用 [房源ID] 标注，说明匹配点、妥协点，以及看房或联系卖家时最该核实的一个问题。',
+      '推荐门槛（严格执行）：在以下五类信息都已基本了解前，禁止点名、标注、排序或推荐任何具体房源 ID：(a) 家庭/购房目的；(b) 总预算且有资金方案；(c) 区域/通勤；(d) 户型且有面积；(e) 至少一个不可妥协条件或生活配套。即使用户过早要求推荐，也要说明还差的最少关键信息，并继续了解，不得给出房源 ID。',
+      '若门槛已满足、但用户尚未明确要看房源，先用简短清单确认需求，再询问是否现在开始初筛。',
       '',
       profileText,
+      consultationStatus,
       memoryText ? ('\n' + memoryText) : '',
       '',
       propsText,
@@ -248,9 +300,10 @@
     return Promise.all([
       Promise.resolve(buildProfileText()),
       buildPropertiesText(),
-      Promise.resolve(buildMemoryText())
+      Promise.resolve(buildMemoryText()),
+      Promise.resolve(buildConsultationStatus())
     ]).then(function (results) {
-      var systemPrompt = buildSystemPrompt(results[0], results[2], results[1]);
+      var systemPrompt = buildSystemPrompt(results[0], results[2], results[1], results[3]);
 
       // 聊天历史（最近 8 条）
       var history = Store.get().chatHistory.slice(-8).map(function (m) {
