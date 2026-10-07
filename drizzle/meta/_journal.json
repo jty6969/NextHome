@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788622045776,
+      "tag": "0000_lowly_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790822608901,
+      "tag": "0001_shocking_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790837834002,
+      "tag": "0002_kind_nitro",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790923771978,
+      "tag": "0003_careful_surge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790941362955,
+      "tag": "0004_cultured_jazinda",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790946781065,
+      "tag": "0005_volatile_clint_barton",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "nexthome-property-library",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "db:generate": "drizzle-kit generate",
+    "test": "node --test tests/*.test.mjs",
+    "sync:listings": "node scripts/listing-sync.mjs",
+    "dev": "node scripts/dev.mjs",
+    "import:victor": "node scripts/import-victor.mjs",
+    "migrate:victor": "node scripts/migrate-victor.mjs"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "esbuild": "0.28.2",
+    "jsdom": "^26.1.0"
+  }
+}

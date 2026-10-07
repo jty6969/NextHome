@@ -1,18 +1,59 @@
-# ===== 密钥与私有配置（切勿提交）=====
-ai-config.json
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# ===== 运行时用户数据（密码哈希、登录会话，切勿提交）=====
-data/users/
-data/sessions.json
+# testing
+/coverage
 
-# ===== 依赖与日志 =====
-node_modules/
-*.log
-npm-debug.log*
+# next.js
+/.next/
+/.vinext/
+/out/
 
-# ===== 系统/编辑器临时文件 =====
+# misc
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local environment
+.env*
+
+# deployment and generated files
+.vercel
+next-env.d.ts
+/dist/
+/.wrangler/
+/outputs/
+/work/
+
+# Private listing exports and local synchronizer state
+/listing-data/
+/.local/
+/NextHome-Victor/data/users/
+/NextHome-Victor/data/sessions.json
+/NextHome-Victor/ai-config.json
+
+# Local prototypes, private documents and credentials
+/NextHome-Victor/
+/.sites-package-stage/
+/MERGE_REPORT.md
+*.docx
+*.log
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+ai-config.json
+/legacy/victor/data/users/
+/legacy/victor/data/sessions.json

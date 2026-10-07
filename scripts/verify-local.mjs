@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+const origin=process.env.PREVIEW_URL||'http://127.0.0.1:3000', evidence=[];
+async function call(route,data,cookie='',method='POST'){
+  const r=await fetch(origin+route,{method:data===undefined?'GET':method,headers:{origin,cookie,'content-type':'application/json'},...(data===undefined?{}:{body:JSON.stringify(data)})});
+  return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};
+}
+const home=await fetch(origin);assert.equal(home.status,200);assert.match(await home.text(),/assets\/advisor.js/);
+const list=await call('/api/listings');assert.equal(list.data.table.length,35);evidence.push('HTTP 页面和 35 套房源读取成功');
+const seller=await call('/api/auth/login',{username:list.data.table[0].legacySellerUsername,password:'seller123'});assert.equal(seller.data.user.role,'seller');
+const buyer=await call('/api/auth/register',{username:'check_'+Date.now(),password:crypto.randomUUID(),role:'user'});assert.equal(buyer.status,200);
+evidence.push('旧卖家密码兼容登录、新买家注册成功');
+const thread=(await call('/api/advisor/threads',{listingId:list.data.table[0].id},buyer.cookie)).data.thread;
+await call('/api/advisor/messages',{threadId:thread.id,content:'合并检查：预约及交易测试。'},buyer.cookie);
+assert.ok((await call('/api/advisor/state',undefined,seller.cookie)).data.threads.find(t=>t.id===thread.id).unread>0);
+const msgs=await call('/api/advisor/messages?threadId='+thread.id,undefined,seller.cookie);await call('/api/advisor/read',{threadId:thread.id,throughId:msgs.data.messages.at(-1).id},seller.cookie);
+assert.equal((await call('/api/advisor/state',undefined,seller.cookie)).data.threads.find(t=>t.id===thread.id).unread,0);evidence.push('买卖双方消息和未读→已读成功');
+const date=new Date(Date.now()+3*86400000).toISOString().slice(0,10),slot='10:00-11:00';
+await call('/api/advisor/slots',{listingId:thread.listing_id,slots:[{date,slot}]},seller.cookie,'PUT');
+assert.equal((await call('/api/advisor/viewings',{threadId:thread.id,date,slot},buyer.cookie)).status,200);
+const viewing=(await call('/api/advisor/state',undefined,seller.cookie)).data.viewings.find(v=>v.thread_id===thread.id);
+assert.equal((await call('/api/advisor/viewing-action',{viewingId:viewing.id,action:'confirm'},seller.cookie)).status,200);evidence.push('未来时段预约和卖家确认成功');
+const offer=await call('/api/advisor/offers',{threadId:thread.id,price:800},buyer.cookie);assert.equal(offer.status,200);
+assert.equal((await call('/api/advisor/offer-action',{offerId:offer.data.id,action:'accept'},seller.cookie)).status,200);
+const deal=(await call('/api/advisor/state',undefined,buyer.cookie)).data.deals[0];
+for(let step=1;step<6;step++)for(const cookie of [buyer.cookie,seller.cookie])assert.equal((await call('/api/advisor/deal-confirm',{dealId:deal.id,step},cookie)).status,200);
+assert.ok((await call('/api/advisor/deal?id='+deal.id,undefined,buyer.cookie)).data.steps.every(s=>s.done));evidence.push('六步流程双方确认至交房完成成功（本地测试记录）');
+const ai=await call('/api/advisor/ai',{message:'上海三口之家自住，预算800万，首付300万，月供10000元，3室100平，需要电梯。请简短指出还应核实哪些需求。',language:'zh'},buyer.cookie);
+evidence.push('真实 AI 请求 HTTP '+ai.status+(ai.status===200?'，返回 '+ai.data.content.length+' 字符':'，错误 '+ai.data.error));
+const result={checkedAt:new Date().toISOString(),origin,evidence,aiStatus:ai.status};
+await writeFile(new URL('../.local/verification.json',import.meta.url),JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));

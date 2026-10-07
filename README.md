@@ -1,102 +1,65 @@
 # NextHome · 房智罗盘
 
-AI 购房助手网站 —— 以上海浦东真实在售房源为数据基础，集 **AI 购房对话、房源浏览、买卖双方消息沟通、看房预约、议价受理、双方确认制交易流程** 于一体的全流程演示项目。
+根目录为新版 NextHome：原生前端、Worker API、Drizzle 数据结构及 SQLite/D1 存储。包含房源录入与编辑、筛选、地图与详情、中英文切换、买卖双方工作台、AI 咨询、消息、议价、预约和双方确认的交易流程。
 
-- 后端：Node.js **零依赖**原生 HTTP 服务器（[server.js](server.js)）
-- 前端：纯原生 HTML / CSS / JavaScript（无框架、无构建工具，SPA 单页应用）
-- AI：DeepSeek（`deepseek-chat`），服务端转发，API Key 不进前端
+新版源码来自本地已发布版本 `4d7ab8948b5dbf666dca286a9e076118729c6140`。GitHub 原有 `2cff721` 版本的应用源码和房源资源完整保留在 `legacy/victor/`；本次提交基于原有远程历史，未覆盖或改写历史提交。
 
-## 功能总览
+## 本地运行新版
 
-### 买家侧
-- **AI 购房助手**：对话式需求挖掘（预算/户型/板块偏好），基于买家画像与历史行为推荐房源
-- **房源浏览**：35 套真实挂牌房源，列表筛选 + 详情页（价格走势、周边配套、卖点与短板分析）
-- **消息与议价**：与卖家实时沟通，对房源发起议价，等待卖家受理（接受 / 还价 / 拒绝）
-- **看房预约**：选择日期与时段提交申请，等待卖家确认
-- **交易流程**：议价达成后自动生成六步交易，每个环节需**买卖双方共同确认**才能进入下一步
+安装 Node.js **22.13 或更高版本**，在仓库根目录执行：
 
-### 卖家侧
-每套房源对应一个独立卖家账号，登录后进入**卖家中心**：
-- 📢 我的房源：名下在售房源一览
-- 💬 消息回复：查看买家会话（含未读角标），手动回复
-- 📅 看房申请：确认或婉拒买家的预约（可附说明，买家收到系统通知）
-- 💰 议价受理：接受出价（自动创建交易）/ 还价 / 拒绝
-- 📋 交易推进：与买家逐环节双向确认，推进六步交易
-
-### 交易流程（双方确认制）
-```
-达成意向 → 签约定金 → 网签备案 → 资金监管+贷款 → 过户 → 交房交接
-```
-从第二步起，每个环节必须买家与卖家**都点击确认**才会进入下一环节，页面实时显示双方确认状态（5 秒轮询自动刷新）。
-
-## 快速开始
-
-1. 安装 [Node.js](https://nodejs.org/)（任意较新版本，无需 npm install）
-2. 配置 AI：复制 `ai-config.example.json` 改名为 `ai-config.json`，填入你的 DeepSeek API Key
-3. 启动：双击 `start.bat`，或在项目根目录运行
-   ```bash
-   node server.js
-   ```
-4. 打开 http://127.0.0.1:3000
-
-## 账号说明
-
-- **买家**：在登录页自行注册
-- **卖家**：服务器首次启动时自动播种，每套房源一个账号，统一密码 `seller123`
-
-| 房源 | 卖家账号 | 数量 |
-|---|---|---|
-| 罗山花苑（明月路199弄） | `seller_lshy01` … `seller_lshy15` | 15 |
-| 世茂湖滨花园（明月路188弄） | `seller_smhb01` … `seller_smhb15` | 15 |
-| 汤臣一品 | `seller_tcyp01` … `seller_tcyp05` | 5 |
-
-## 项目结构
-
-```
-Nexthome/
-├── server.js                  # 后端总控：静态托管、注册登录、卖家接口、AI 转发
-├── start.bat                  # Windows 一键启动
-├── ai-config.example.json     # AI 配置模板（真实 ai-config.json 不入库）
-├── public/                    # 前端（SPA）
-│   ├── index.html             # 页面骨架
-│   ├── css/style.css          # 全部样式
-│   └── js/
-│       ├── app.js             # 路由 / 本地存储 / 工具函数
-│       ├── api.js             # 后端通信 + AI 调用
-│       └── pages/             # 每个文件对应一个页面
-│           ├── auth.js             登录注册
-│           ├── home.js             首页
-│           ├── properties.js       房源列表
-│           ├── propertyDetail.js   房源详情
-│           ├── chat.js             AI 购房助手
-│           ├── messages.js         消息与议价（买家）
-│           ├── viewing.js          看房预约（买家）
-│           ├── transaction.js      交易流程（买家确认侧）
-│           └── seller.js           卖家中心
-├── data/
-│   ├── properties/            # ★ 房源库：每套一个 JSON，共 35 套（含来源链接）
-│   ├── properties.json        # 旧格式数据（兼容保留）
-│   └── ai-summary/            # ★ 房源 AI 分析表（供其他 AI 读取）
-│       ├── properties-ai-table.json   # 结构化 JSON（含字段说明）
-│       ├── properties-ai-table.csv    # 表格（Excel 可开）
-│       └── properties-ai-table.md     # Markdown 表（可直接贴给 LLM）
-└── tools/                     # 数据生产线（手动运行，非网站运行依赖）
-    ├── generate-properties.js     # 生成/覆盖 data/properties/ 全部房源
-    └── generate-ai-summary.js     # 依据房源库重新生成 ai-summary 三张表
+```powershell
+npm ci
+npm run dev
 ```
 
-## 数据说明
+打开 <http://127.0.0.1:3000>。首次运行会在 `.local/nexthome.sqlite` 创建数据库并应用 `drizzle/` 迁移，再从应用自带的房源快照导入数据。该数据库不提交到 Git。
 
-- 房源数据采集自房天下公开在售挂牌（贝壳/链家存在登录墙），每套房源 JSON 的 `source` 字段记录了原始页面链接与采集日期
-- 小区背景：罗山花苑为碧云板块 2000 年前后的多层板楼社区，世茂湖滨花园为 2003-2004 年高层湖景社区，两者均邻近 9 号线蓝天路站
-- 运行时产生的用户数据写入 `data/users/` 与 `data/sessions.json`，**已通过 .gitignore 排除，不会上传**
-- 更新房源后重新生成分析表：
-  ```bash
-  node tools/generate-properties.js     # 重写房源库
-  node tools/generate-ai-summary.js     # 刷新 AI 分析表
-  ```
+买家和卖家可通过页面注册。示例管理员为 `管理员账号1`，示例密码为 `123456`，仅用于本地演示；部署到自己的生产环境前应配置并管理自己的账号。
 
-## 目录约定
+AI 功能需要服务端环境变量；未配置时页面仍可运行，AI 请求会提示配置缺失：
 
-- 私有仓库，All rights reserved。
-- ⚠️ 请勿将 `ai-config.json`（API Key）、`data/users/`、`data/sessions.json` 提交到任何公开仓库。
+```powershell
+$env:DEEPSEEK_API_KEY = '填入自己的服务端密钥'
+npm run dev
+```
+
+不要将真实密钥写入源码、提交记录或前端。AI 成功回答还需要上游账号有可用余额。地图的服务端配置和房源同步说明分别见 [MAP_SETUP.md](MAP_SETUP.md) 与 [LISTING_SYNC.md](LISTING_SYNC.md)。本地开发服务器仅监听 `127.0.0.1`。
+
+## 验证与构建
+
+```powershell
+npm test
+npm run build
+npm run sync:listings -- --help
+```
+
+构建输出为 `dist/client/`、`dist/server/index.js` 和 `dist/.openai/drizzle/`。`dist/` 为生成目录，不入库。Worker 使用 `DB` 数据库绑定和 `ASSETS` 静态资源绑定；站点构建描述位于 `.openai/hosting.json`。GitHub 上传不等于部署网站，也不会迁移线上用户数据库。
+
+## 目录
+
+| 路径 | 用途 |
+| --- | --- |
+| `index.html`、`assets/` | 新版页面、样式、工作台脚本、图片与房源导入快照 |
+| `worker/` | 鉴权、房源、地图代理、AI 和买卖业务 API |
+| `db/`、`drizzle/` | 数据结构与增量数据库迁移 |
+| `scripts/` | 构建、本地服务器、同步及可选旧数据迁移 |
+| `tests/` | 隔离数据库和页面回归测试 |
+| `legacy/victor/` | 同伴原有版本，保留原代码及资源 |
+
+房源资源包括历史挂牌与演示数据，不代表实时成交价；运行时业务记录以数据库为准。
+
+## 运行保留的旧版
+
+```powershell
+cd legacy/victor
+node server.js
+```
+
+也可在该目录双击 `start.bat`。请先停止新版，避免两版同时占用 3000 端口。旧版使用独立的 CommonJS 包设置，保留原有语音输入、双语界面及 AI 咨询逻辑；详细说明见 [旧版 README](legacy/victor/README.md)。如需旧版 AI，将其 `ai-config.example.json` 复制为同目录 `ai-config.json`，自行填写密钥。
+
+`scripts/import-victor.mjs` 与 `scripts/migrate-victor.mjs` 是可选的本地旧数据导入工具，默认读取未提交的 `NextHome-Victor/`。普通运行新版无需这些私有数据；迁移前自行备份数据库，并准备拥有访问权限的本地数据。旧会话和旧客户端交易快照不会转换为有效交易确认。
+
+## 不入库的内容
+
+真实密钥与 `.env` 文件、用户数据与会话、本地数据库、`listing-data/` 导出、日志、构建产物、`outputs/`、内部 Word 文档和内部合并报告均不提交。已有内部 Word 文档保留在本地及原 Git 历史中，从本次 `main` 文件树移除。
