@@ -31,6 +31,30 @@ const AI_CONFIG_PATH = path.join(__dirname, 'ai-config.json');
 let aiConfig = null;
 try { aiConfig = JSON.parse(fs.readFileSync(AI_CONFIG_PATH, 'utf8')); } catch (e) { aiConfig = null; }
 
+/* ============ 百度地图配置（服务器私有；浏览器端 AK 仍须配置 Referer 白名单） ============ */
+const MAP_CONFIG_PATH = path.join(__dirname, 'map-config.json');
+let mapConfig = null;
+try { mapConfig = JSON.parse(fs.readFileSync(MAP_CONFIG_PATH, 'utf8')); } catch (e) { mapConfig = null; }
+
+// 演示房源按小区设置中心点，标记在小区内作轻微错开。坐标为百度 BD-09 经纬度。
+const DEMO_COMMUNITY_COORDS = {
+  '罗山花苑': { lng: 121.5856, lat: 31.2494 },
+  '世茂湖滨花园': { lng: 121.5834, lat: 31.2482 },
+  '汤臣一品': { lng: 121.5147, lat: 31.2387 }
+};
+function demoMapLocation(property, index) {
+  if (property.location && Number.isFinite(property.location.lng) && Number.isFinite(property.location.lat)) return;
+  var center = DEMO_COMMUNITY_COORDS[property.community];
+  if (!center) return;
+  var sequence = index % 9;
+  property.location = {
+    lng: +(center.lng + ((sequence % 3) - 1) * 0.00115).toFixed(6),
+    lat: +(center.lat + (Math.floor(sequence / 3) - 1) * 0.00085).toFixed(6),
+    coordinateType: 'bd09',
+    source: 'demo-community-center'
+  };
+}
+
 /* ============ 房源数据（data/properties/ 文件夹，每套房一个 JSON） ============ */
 let properties = [];
 function loadProperties() {
@@ -45,6 +69,7 @@ function loadProperties() {
   if (!properties.length && fs.existsSync(PROPERTIES_PATH)) {
     try { properties = JSON.parse(fs.readFileSync(PROPERTIES_PATH, 'utf8')); } catch (e) { properties = []; }
   }
+  properties.forEach(demoMapLocation);
 }
 loadProperties();
 
@@ -252,6 +277,19 @@ function forwardToAI(endpoint, apiKey, model, messages, timeoutMs) {
 
 /* ============ 路由 ============ */
 async function handleAPI(req, res, urlPath, method) {
+
+  /* ---- 地图前端配置（浏览器端 AK 受 Referer 白名单保护） ---- */
+  if (urlPath === '/api/map/config' && method === 'GET') {
+    var cfg = mapConfig || {};
+    var browserAk = String(cfg.baiduAk || '').trim();
+    var mapEnabled = !!browserAk && browserAk.indexOf('在此填入') < 0;
+    return sendJSON(res, 200, {
+      provider: 'baidu',
+      enabled: mapEnabled,
+      ak: mapEnabled ? browserAk : '',
+      center: cfg.center || { lng: 121.5147, lat: 31.2387, zoom: 11 }
+    });
+  }
 
   /* ---- 房源（公开） ---- */
   if (urlPath === '/api/properties' && method === 'GET') {

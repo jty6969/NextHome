@@ -151,6 +151,25 @@ img { max-width: 100%; }
 .chat-voice-status:empty { display: none; }
 .chat-voice-status.is-error { color: #d9363e; }
 @keyframes voice-pulse { 50% { opacity: .55; } }
+
+/* 地图找房 */
+.map-search-bar { display: flex; gap: 8px; margin: 16px 0; }
+.map-search-bar input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font: inherit; }
+.map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+.map-canvas { min-height: 580px; border-radius: var(--radius); overflow: hidden; background: #edf4fa; box-shadow: var(--shadow); }
+.map-fallback { height: 100%; min-height: 580px; display: flex; align-items: center; justify-content: center; padding: 28px; text-align: center; color: var(--text-light); }
+.map-result-panel { background: var(--bg-white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.map-result-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 600; }
+.map-result-list { max-height: 530px; overflow: auto; }
+.map-result-item { width: 100%; display: block; text-align: left; border: 0; border-bottom: 1px solid #f0f0f0; background: #fff; padding: 13px 16px; cursor: pointer; font: inherit; }
+.map-result-item:hover, .map-result-item.active { background: #f0f7ff; }
+.map-result-name { font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.map-result-meta { color: var(--text-light); font-size: 12px; line-height: 1.55; }
+.map-info-window { min-width: 210px; line-height: 1.55; }
+.map-info-window h4 { margin: 0 0 6px; font-size: 14px; }
+.map-info-window p { margin: 3px 0; font-size: 12px; }
+.map-info-window a { display: inline-block; margin-top: 7px; color: var(--primary); font-size: 12px; font-weight: 600; }
+@media (max-width: 900px) { .map-layout { grid-template-columns: 1fr; } .map-canvas, .map-fallback { min-height: 420px; } .map-result-list { max-height: 360px; } }
 .chat-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0; }
 .avatar-ai { background: var(--primary); }
 .avatar-user { background: var(--success); }

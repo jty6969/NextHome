@@ -11,6 +11,7 @@ AI 购房助手网站 —— 以上海浦东真实在售房源为数据基础，
 ### 买家侧
 - **AI 购房助手**：对话式需求挖掘（预算/户型/板块偏好），基于买家画像与历史行为推荐房源
 - **房源浏览**：35 套真实挂牌房源，列表筛选 + 详情页（价格走势、周边配套、卖点与短板分析）
+- **地图找房**：按小区、楼盘或地址搜索房源，在百度地图上查看位置与详情入口（需配置本地百度地图 AK）
 - **消息与议价**：与卖家实时沟通，对房源发起议价，等待卖家受理（接受 / 还价 / 拒绝）
 - **看房预约**：选择日期与时段提交申请，等待卖家确认
 - **交易流程**：议价达成后自动生成六步交易，每个环节需**买卖双方共同确认**才能进入下一步
@@ -33,7 +34,8 @@ AI 购房助手网站 —— 以上海浦东真实在售房源为数据基础，
 
 1. 安装 [Node.js](https://nodejs.org/)（任意较新版本，无需 npm install）
 2. 配置 AI：复制 `ai-config.example.json` 改名为 `ai-config.json`，填入你的 DeepSeek API Key
-3. 启动：双击 `start.bat`，或在项目根目录运行
+3. 可选配置地图：复制 `map-config.example.json` 改名为 `map-config.json`，填入百度地图开放平台创建的**浏览器端 AK**。在 AK 的 Referer 白名单加入 `http://127.0.0.1:3000/*` 和 `http://localhost:3000/*`
+4. 启动：双击 `start.bat`，或在项目根目录运行
    ```bash
    node server.js
    ```
@@ -57,6 +59,7 @@ Nexthome/
 ├── server.js                  # 后端总控：静态托管、注册登录、卖家接口、AI 转发
 ├── start.bat                  # Windows 一键启动
 ├── ai-config.example.json     # AI 配置模板（真实 ai-config.json 不入库）
+├── map-config.example.json    # 百度地图配置模板（真实 map-config.json 不入库）
 ├── public/                    # 前端（SPA）
 │   ├── index.html             # 页面骨架
 │   ├── css/style.css          # 全部样式
@@ -67,6 +70,7 @@ Nexthome/
 │           ├── auth.js             登录注册
 │           ├── home.js             首页
 │           ├── properties.js       房源列表
+│           ├── map.js              百度地图找房
 │           ├── propertyDetail.js   房源详情
 │           ├── chat.js             AI 购房助手
 │           ├── messages.js         消息与议价（买家）
@@ -90,6 +94,7 @@ Nexthome/
 - 房源数据采集自房天下公开在售挂牌（贝壳/链家存在登录墙），每套房源 JSON 的 `source` 字段记录了原始页面链接与采集日期
 - 小区背景：罗山花苑为碧云板块 2000 年前后的多层板楼社区，世茂湖滨花园为 2003-2004 年高层湖景社区，两者均邻近 9 号线蓝天路站
 - 运行时产生的用户数据写入 `data/users/` 与 `data/sessions.json`，**已通过 .gitignore 排除，不会上传**
+- 地图页中的房源位置为按小区中心轻微错开的**演示 BD-09 坐标**；接入正式数据时，应使用地址地理编码结果替换每套房源的 `location` 字段
 - 更新房源后重新生成分析表：
   ```bash
   node tools/generate-properties.js     # 重写房源库
@@ -99,4 +104,4 @@ Nexthome/
 ## 目录约定
 
 - 私有仓库，All rights reserved。
-- ⚠️ 请勿将 `ai-config.json`（API Key）、`data/users/`、`data/sessions.json` 提交到任何公开仓库。
+- ⚠️ 请勿将 `ai-config.json`（API Key）、`map-config.json`（百度地图 AK）、`data/users/`、`data/sessions.json` 提交到任何公开仓库。

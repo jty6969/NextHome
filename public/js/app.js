@@ -330,6 +330,7 @@
     { path: '/', key: 'nav.home' },
     { path: '/chat', key: 'nav.chat' },
     { path: '/properties', key: 'nav.properties' },
+    { path: '/map', key: 'nav.map' },
     { path: '/messages', key: 'nav.messages' },
     { path: '/viewing', key: 'nav.viewing' },
     { path: '/transaction', key: 'nav.transaction' }

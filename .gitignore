@@ -1,5 +1,6 @@
 # ===== 密钥与私有配置（切勿提交）=====
 ai-config.json
+map-config.json
 
 # ===== 运行时用户数据（密码哈希、登录会话，切勿提交）=====
 data/users/
