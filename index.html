@@ -1,0 +1,2266 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Nexthome 房源浏览原型，支持按区域、户型、价格、面积等条件查找和比较房源。"
+    />
+    <title>Nexthome｜房源库</title>
+    <link rel="stylesheet" href="/assets/advisor.css" />
+    <style>
+      :root {
+        --ink: #10233f;
+        --muted: #68758a;
+        --line: #e7ebf1;
+        --paper: #ffffff;
+        --canvas: #f5f7fa;
+        --navy: #0e2a4c;
+        --navy-soft: #173b64;
+        --accent: #f06b3f;
+        --accent-dark: #d9532a;
+        --blue: #2563eb;
+        --success: #168a63;
+        --shadow: 0 18px 50px rgba(15, 35, 62, 0.09);
+        font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+        color: var(--ink);
+        background: var(--canvas);
+      }
+
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; min-width: 320px; background: var(--canvas); }
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        height: 68px;
+        color: #fff;
+        background: rgba(10, 32, 57, 0.96);
+        backdrop-filter: blur(14px);
+      }
+
+      .header-inner,
+      .hero-inner,
+      .content { width: min(1280px, calc(100% - 56px)); margin: 0 auto; }
+      .header-inner { height: 100%; display: flex; align-items: center; gap: 46px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.04em; }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px 10px 10px 4px;
+        color: var(--navy);
+        background: #fff;
+        font-size: 18px;
+      }
+
+      nav { display: flex; align-items: center; gap: 28px; font-size: 15px; }
+      nav a { color: #cbd6e2; text-decoration: none; }
+      nav a.active, nav a:hover { color: #fff; }
+      .header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .ghost-button {
+        min-height: 40px;
+        padding: 0 17px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.22);
+        color: #fff;
+        background: transparent;
+      }
+      .listing-button {
+        min-height: 40px;
+        padding: 0 17px;
+        border: 1px solid rgba(255,255,255,.72);
+        border-radius: 10px;
+        color: var(--navy);
+        background: #fff;
+        font-weight: 800;
+      }
+      .listing-button:hover { color: #fff; border-color: var(--navy-soft); background: var(--navy-soft); }
+
+      .language-switch { position: relative; flex-shrink: 0; }
+      .language-menu { position: absolute; top: 100%; left: 0; min-width: 160px; padding-top: 8px; z-index: 30; }
+      .language-menu-inner { padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); box-shadow: var(--shadow); }
+      .language-option { display: block; width: 100%; min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; color: var(--ink); background: transparent; text-align: left; white-space: nowrap; }
+      .language-option:hover, .language-option:focus-visible { background: var(--canvas); }
+      .language-option[aria-checked="true"] { color: var(--blue); background: #eaf1ff; font-weight: 800; }
+      .language-option[aria-checked="true"]::after { content: '✓'; float: right; margin-left: 16px; }
+      .language-option:focus-visible, #languageButton:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+      body:has(.listing-modal:not([hidden])) .site-header { z-index: 101; pointer-events: none; }
+      body:has(.listing-modal:not([hidden])) .language-switch { pointer-events: auto; }
+      html[lang="en"] .input-suffix input { padding-right: 70px; }
+
+      .listing-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--navy);
+      }
+      .listing-modal[hidden] { display: none; }
+      .listing-dialog {
+        width: min(100%, 500px);
+        overflow: hidden;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 26px 70px rgba(0,0,0,.28);
+      }
+      .listing-dialog.wide-dialog { width: min(100%, 780px); max-height: min(92vh, 880px); overflow-y: auto; }
+      .dialog-header { padding: 28px 30px 20px; border-bottom: 1px solid var(--line); }
+      .dialog-header h2 { margin: 0; font-size: 26px; letter-spacing: -.03em; }
+      .dialog-header p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+      .listing-form { padding: 24px 30px 30px; }
+      .form-field + .form-field { margin-top: 18px; }
+      .form-field label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 14px; font-weight: 800; }
+      .required { color: var(--accent); }
+      .form-field input,
+      .form-field select {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 14px;
+        border: 1px solid #d8e0e9;
+        border-radius: 10px;
+        outline: none;
+        color: var(--ink);
+        background: #fff;
+        font-size: 16px;
+        transition: border-color .18s ease, box-shadow .18s ease;
+      }
+      .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      .form-grid .form-field + .form-field { margin-top: 0; }
+      .form-grid .full-row { grid-column: 1 / -1; }
+      .form-section-title { grid-column: 1 / -1; margin: 7px 0 -2px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink); font-size: 15px; }
+      .form-section-title:first-child { padding-top: 0; border-top: 0; }
+      .inline-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+      .inline-fields input { min-width: 0; }
+      .input-suffix { position: relative; }
+      .input-suffix input { padding-right: 48px; }
+      .input-suffix span { position: absolute; right: 14px; top: 50%; color: var(--muted); font-size: 13px; transform: translateY(-50%); pointer-events: none; }
+      .password-field { position: relative; }
+      .password-field input { padding-right: 58px; }
+      .password-toggle { position: absolute; right: 3px; top: 50%; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; color: var(--muted); background: transparent; transform: translateY(-50%); }
+      .password-toggle:hover, .password-toggle[aria-pressed="true"] { color: var(--blue); background: rgba(37,99,235,.06); }
+      .password-toggle:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+      .password-toggle svg { width: 22px; height: 22px; }
+      .password-toggle[aria-pressed="false"] .eye-slash { display: none; }
+      .form-field input::placeholder { color: #9aa6b6; }
+      .form-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+      .field-hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .form-message { margin: 14px 0 0; color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.5; }
+      .form-message[hidden] { display: none; }
+      .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; }
+      .dialog-cancel,
+      .dialog-submit { min-height: 44px; padding: 0 22px; border-radius: 10px; font-weight: 800; }
+      .dialog-cancel { border: 1px solid #d8e0e9; color: #42536a; background: #fff; }
+      .dialog-cancel:hover { border-color: #b8c3d0; background: #f7f9fb; }
+      .dialog-submit { border: 1px solid var(--accent); color: #fff; background: var(--accent); }
+      .dialog-submit:hover { border-color: var(--accent-dark); background: var(--accent-dark); }
+      .dialog-submit:disabled { cursor: wait; opacity: .72; }
+      .admin-controls { padding: 20px 30px 0; }
+      .admin-modes { display: flex; flex-wrap: wrap; gap: 10px; }
+      .admin-modes [aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); }
+      .admin-search { margin-top: 18px; }
+      .admin-search-row { display: flex; gap: 10px; }
+      .admin-search-row input { min-width: 0; }
+      .admin-results { max-height: 220px; overflow-y: auto; padding: 0; margin: 12px 0; list-style: none; }
+      .admin-results button { width: 100%; margin-bottom: 8px; padding: 12px 14px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+      .admin-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+      .admin-selected { margin: 12px 0 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+      .listing-toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 110;
+        padding: 14px 18px;
+        border-radius: 10px;
+        color: #fff;
+        background: var(--success);
+        box-shadow: var(--shadow);
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .listing-toast[hidden] { display: none; }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        background:
+          linear-gradient(90deg, rgba(5,23,42,.94) 0%, rgba(8,32,57,.85) 45%, rgba(14,42,76,.36) 100%),
+          url("assets/home-hero.png") center 42% / cover;
+      }
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -8% -110px auto;
+        width: 420px;
+        height: 260px;
+        border: 54px solid rgba(255,255,255,.06);
+        border-radius: 50%;
+        transform: rotate(-18deg);
+      }
+      .hero-inner { position: relative; z-index: 1; padding: 56px 0 44px; }
+
+      h1 { margin: 0; max-width: 700px; font-size: clamp(32px, 4.4vw, 50px); line-height: 1.08; letter-spacing: -.04em; }
+
+
+      .search-shell {
+        display: flex;
+        max-width: 860px;
+        margin-top: 32px;
+        min-height: 54px;
+        padding: 6px;
+        border-radius: 15px;
+        background: #fff;
+        box-shadow: 0 20px 55px rgba(0,0,0,.22);
+      }
+      .search-shell input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        padding: 0 18px;
+        color: var(--ink);
+        background: transparent;
+        font-size: 16px;
+      }
+      .search-shell input::placeholder { color: #9aa6b6; }
+      .map-button {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 16px;
+        border: 0;
+        color: #4a5b70;
+        background: transparent;
+        white-space: nowrap;
+      }
+      .search-button {
+        min-width: 112px;
+        border: 0;
+        border-radius: 11px;
+        color: #fff;
+        background: var(--accent);
+        font-weight: 800;
+      }
+      .search-button:hover { background: var(--accent-dark); }
+
+      .quick-links { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; color: #c9d5e2; font-size: 14px; }
+      .quick-links button { padding: 0; border: 0; color: inherit; background: none; }
+      .quick-links button:hover { color: #fff; }
+
+      .content { padding: 42px 0 84px; }
+      .filter-panel {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: 1.3fr repeat(4, 1fr) auto;
+        gap: 14px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .field label { display: block; margin: 0 0 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
+      .field select {
+        width: 100%;
+        min-height: 42px;
+        padding: 0 12px;
+        border: 1px solid #dfe5ed;
+        border-radius: 9px;
+        outline: none;
+        color: var(--ink);
+        background: #fafbfc;
+      }
+      .field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+      .clear-filter { align-self: end; min-height: 42px; border: 0; color: var(--blue); background: none; white-space: nowrap; }
+
+      .result-bar { display: flex; align-items: end; gap: 16px; margin: 38px 0 20px; }
+      .result-bar h2 { margin: 0 0 5px; font-size: 28px; letter-spacing: -.03em; }
+      .result-bar p { margin: 0; color: var(--muted); font-size: 14px; }
+      .result-count { color: var(--accent); font-weight: 800; }
+      .sort { margin-left: auto; display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
+      .sort select { padding: 9px 31px 9px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; }
+
+      .listing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+      .listing-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--paper);
+        box-shadow: 0 8px 28px rgba(20,43,72,.06);
+        transition: transform .22s ease, box-shadow .22s ease;
+      }
+      .listing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+      .card-image { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #dbe3eb; }
+      .card-image img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; display: block; transition: transform .45s ease; }
+      .card-image.empty-card-image { display: grid; place-items: center; color: #728197; background: #e7ecf2; font-size: 14px; font-weight: 700; }
+      .listing-card:hover img { transform: scale(1.035); }
+      .badge-row { position: absolute; left: 14px; top: 14px; display: flex; gap: 7px; }
+      .badge { padding: 6px 9px; border-radius: 7px; color: #fff; background: rgba(12,40,70,.88); font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); }
+      .badge.new { background: var(--accent); }
+      .favorite {
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        width: 38px;
+        height: 38px;
+        border: 1px solid rgba(255,255,255,.55);
+        border-radius: 50%;
+        color: #fff;
+        background: rgba(0,0,0,.23);
+        font-size: 19px;
+      }
+      .favorite.active { color: #fff; border-color: var(--accent); background: var(--accent); }
+      .card-body { padding: 17px 17px 18px; }
+      .card-heading { display: flex; gap: 12px; align-items: start; }
+      .card-heading h3 { flex: 1; margin: 0; min-width: 0; font-size: 18px; line-height: 1.45; }
+      .price { color: var(--accent); font-size: 23px; font-weight: 900; white-space: nowrap; }
+      .price small { font-size: 13px; font-weight: 700; }
+      .community { display: flex; align-items: center; gap: 6px; margin: 7px 0 13px; color: var(--muted); font-size: 13px; }
+      .key-facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; border: 1px solid var(--line); border-radius: 11px; }
+      .fact { padding: 10px 7px; text-align: center; }
+      .fact + .fact { border-left: 1px solid var(--line); }
+      .fact strong { display: block; margin-bottom: 3px; font-size: 15px; }
+      .fact span { color: var(--muted); font-size: 11px; }
+      .detail-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+      .detail-list div { min-width: 0; padding: 9px 10px; border-radius: 8px; background: #f7f9fb; font-size: 12px; line-height: 1.4; }
+      .detail-list dt { margin-bottom: 3px; color: #8a96a5; }
+      .detail-list dd { margin: 0; overflow: hidden; color: #3a4a5f; text-overflow: ellipsis; white-space: nowrap; }
+      .listed-time { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+      .listed-time strong { color: var(--success); }
+
+      .empty-state { display: none; padding: 70px 20px; text-align: center; color: var(--muted); border: 1px dashed #cfd7e2; border-radius: 18px; background: #fff; }
+      .empty-state.show { display: block; }
+      .footer { padding: 28px 20px; text-align: center; color: #8994a3; background: #e9edf2; font-size: 13px; }
+
+      @media (max-width: 980px) {
+        .filter-panel { grid-template-columns: repeat(3, 1fr); }
+        .clear-filter { justify-self: start; }
+        .listing-grid { grid-template-columns: repeat(2, 1fr); }
+        nav { display: none; }
+      }
+      @media (max-width: 1180px) {
+        html[lang="en"] nav { display: none; }
+      }
+      @media (max-width: 680px) {
+        .header-inner, .hero-inner, .content { width: min(calc(100% - 26px), 1280px); }
+        .site-header { height: 60px; }
+        .header-inner { gap: 10px; }
+        .brand { flex: 0 0 auto; }
+        .header-actions { min-width: 0; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+        .header-actions::-webkit-scrollbar { display: none; }
+        .ghost-button { display: none; }
+        .account-button { display: inline-flex; align-items: center; max-width: 92px; overflow: hidden; padding: 0 9px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        #languageButton { display: inline-flex; align-items: center; padding: 0 9px; font-size: 12px; white-space: nowrap; }
+        .language-menu { position: fixed; top: 60px; left: 13px; padding-top: 8px; }
+        .admin-entry { padding: 0 9px; font-size: 12px; }
+        .listing-button { min-height: 38px; padding: 0 10px; font-size: 13px; }
+        .hero-inner { padding: 40px 0 30px; }
+
+        .search-shell { width: 100%; min-height: 54px; overflow: hidden; }
+        .map-button { display: flex; padding: 0 8px; font-size: 12px; }
+        .search-shell input { min-width: 0; width: 0; }
+        .search-button { min-width: 76px; }
+        .content { padding-top: 20px; }
+        .filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+        .field { min-width: 0; }
+        .field:first-child { grid-column: 1 / -1; }
+        .result-bar { align-items: start; flex-wrap: wrap; margin-top: 28px; }
+        .sort { margin-left: 0; width: 100%; }
+        .listing-grid { grid-template-columns: 1fr; }
+        .card-image { aspect-ratio: 16 / 10; }
+        .listing-modal { align-items: end; padding: 14px; }
+        .listing-dialog { border-radius: 18px; }
+        .dialog-header { padding: 24px 22px 18px; }
+        .listing-form { padding: 22px; }
+        .admin-controls { padding: 18px 22px 0; }
+        .admin-modes button { flex: 1 1 auto; padding: 0 12px; }
+        .admin-search-row { flex-wrap: wrap; }
+        .admin-search-row input { flex: 1 1 200px; }
+        .admin-search-row button { flex: 1 0 auto; }
+        .header-actions > button { flex-shrink: 0; }
+        .form-grid { grid-template-columns: 1fr; }
+        .form-grid .full-row, .form-section-title { grid-column: 1; }
+        .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
+        .listing-toast { right: 14px; bottom: 14px; left: 14px; text-align: center; }
+      }
+      .property-link { color: inherit; text-decoration: none; }
+      .property-link:hover { color: var(--blue); }
+      .photo-link { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); text-decoration: none; }
+      .photo-link img { width: 100%; height: 100%; object-fit: cover; }
+      .card-image .badge-row { z-index: 2; pointer-events: none; }
+      .card-image .favorite { z-index: 3; }
+      .property-link:focus-visible, .photo-link:focus-visible, .map-modal button:focus-visible, .detail-page button:focus-visible, .map-popup a:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+      .detail-page { padding-top: 28px; padding-bottom: 48px; }
+      .detail-toolbar, .map-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .surface-button { min-height: 44px; padding: 9px 16px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--paper); }
+      .surface-button:hover { border-color: var(--blue); color: var(--blue); }
+      .detail-surface { margin-top: 20px; padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); box-shadow: var(--shadow); overflow-wrap: anywhere; }
+      .detail-surface h1 { font-size: 28px; margin: 0 0 12px; }
+      .detail-gallery { display: flex; overflow-x: auto; gap: 12px; margin: 24px 0; scroll-snap-type: x mandatory; }
+      .detail-photo { flex: 0 0 80%; height: 380px; object-fit: contain; background: var(--canvas); border-radius: 12px; scroll-snap-align: start; }
+      .photo-empty { display: grid; place-items: center; min-height: 180px; padding: 24px; border-radius: 12px; background: var(--canvas); color: var(--muted); }
+      .detail-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+      .detail-facts div { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+      .detail-facts dt { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+      .detail-facts dd { margin: 0; line-height: 1.7; white-space: pre-wrap; }
+      .map-modal { position: fixed; inset: 68px 0 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(14,42,76,.65); }
+      body:has(.map-modal:not([hidden])) .site-header { z-index: 41; }
+      .map-dialog { width: min(1180px, 100%); height: min(820px, 100%); display: flex; flex-direction: column; border-radius: 16px; background: var(--paper); overflow: hidden; box-shadow: var(--shadow); }
+      .map-toolbar { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+      .map-toolbar h2 { margin: 0 auto 0 0; font-size: 22px; }
+      .map-status { margin: 0; padding: 10px 20px; font-size: 14px; line-height: 1.6; }
+      .map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; flex: 1; min-height: 0; }
+      .map-canvas { min-height: 300px; background: var(--canvas); }
+      .map-canvas:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+      .map-results { overflow-y: auto; padding: 14px; border-left: 1px solid var(--line); }
+      .map-results h3 { font-size: 16px; margin: 0 0 12px; }
+      .map-results ol { padding: 0; margin: 0; list-style: none; }
+      .map-results li { margin-bottom: 12px; overflow-wrap: anywhere; }
+      .map-results button { width: 100%; text-align: left; }
+      .map-results p { font-size: 14px; margin: 6px 0; color: var(--muted); }
+      .map-pin { min-width: 34px; height: 34px; border: 2px solid #fff; border-radius: 50%; background: var(--blue); color: #fff; box-shadow: 0 2px 8px #10233f60; font-weight: 800; }
+      .map-popup { position: relative; width: 240px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); }
+      .map-popup img { display: block; width: 100%; height: 130px; object-fit: cover; border-radius: 8px; }
+      .map-popup .photo-empty { min-height: 100px; }
+      .map-popup h3 { font-size: 16px; line-height: 1.5; margin: 12px 0; overflow-wrap: anywhere; }
+      .map-popup-close { position: absolute; top: -16px; right: -10px; border-radius: 50%; min-height: 36px; min-width: 36px; }
+      @media (max-width: 700px) {
+        .map-modal { inset: 60px 0 0; padding: 8px; }
+        .map-toolbar { padding: 10px; gap: 6px; }
+        .map-toolbar h2 { font-size: 18px; }
+        .map-layout { display: flex; flex-direction: column; overflow-y: auto; }
+        .map-canvas { flex: 1 0 50%; min-height: 300px; }
+        .map-results { flex: 0 0 auto; max-height: 220px; border-left: 0; border-top: 1px solid var(--line); }
+        .detail-surface { padding: 18px; }
+        .detail-surface h1 { font-size: 22px; }
+        .detail-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .detail-photo { height: 240px; flex-basis: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand"><span class="brand-mark">N</span><span>Nexthome</span></div>
+        <nav aria-label="主导航">
+          <a class="active" href="#listings">二手房</a>
+          <a href="#">新房</a>
+          <a href="#">小区</a>
+          <a href="#">房产资讯</a>
+        </nav>
+        <div class="header-actions">
+          <div class="language-switch" id="languageSwitch">
+            <button class="ghost-button" id="languageButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="languageMenu">切换语言</button>
+            <div class="language-menu" id="languageMenu" hidden>
+              <div class="language-menu-inner" role="menu" aria-label="切换语言">
+                <button class="language-option" type="button" role="menuitemradio" data-language="zh-CN" aria-checked="true" tabindex="-1">简体中文</button>
+                <button class="language-option" type="button" role="menuitemradio" data-language="en" aria-checked="false" tabindex="-1">English</button>
+              </div>
+            </div>
+          </div>
+          <button class="ghost-button" id="propertyInfoButton" type="button">房屋信息</button>
+          <button class="listing-button admin-entry" id="openAdminModal" type="button" hidden>手动录入房源</button>
+          <button class="listing-button" id="openListingModal" type="button">挂牌</button>
+          <button class="ghost-button account-button" id="authButton" type="button">登录 / 注册</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="listing-modal" id="listingModal" hidden>
+      <section class="listing-dialog" role="dialog" aria-modal="true" aria-labelledby="listingDialogTitle" aria-describedby="listingDialogDescription">
+        <div class="dialog-header">
+          <h2 id="listingDialogTitle">房屋挂牌</h2>
+          <p id="listingDialogDescription">留下房屋与联系方式，Nexthome 顾问将尽快与您联系。</p>
+        </div>
+        <form class="listing-form" id="listingForm">
+          <div class="form-field">
+            <label for="ownerName">姓名 <span class="required" aria-hidden="true">*</span></label>
+            <input id="ownerName" name="ownerName" type="text" autocomplete="name" placeholder="请输入您的姓名" required />
+          </div>
+          <div class="form-field">
+            <label for="ownerPhone">电话 <span class="required" aria-hidden="true">*</span></label>
+            <input id="ownerPhone" name="ownerPhone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="请输入 11 位手机号" pattern="1[3-9][0-9]{9}" maxlength="11" required />
+          </div>
+          <div class="form-field">
+            <label for="propertyAddress">详细住址 <span class="required" aria-hidden="true">*</span></label>
+            <input id="propertyAddress" name="propertyAddress" type="text" autocomplete="street-address" placeholder="例如：春江花月小区 3 幢 1202 室" minlength="4" required />
+            <p class="field-hint">请填写小区名称和具体门牌号。</p>
+          </div>
+          <p class="form-message" id="listingFormMessage" role="alert" hidden></p>
+          <div class="dialog-actions">
+            <button class="dialog-cancel" id="closeListingModal" type="button">取消</button>
+            <button class="dialog-submit" id="submitListingButton" type="submit">提交挂牌</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <div class="listing-toast" id="listingToast" role="status" aria-live="polite" hidden>挂牌信息已提交，我们会尽快联系您。</div>
+
+    <div class="listing-modal" id="authModal" hidden>
+      <section class="listing-dialog" role="dialog" aria-modal="true" aria-labelledby="authDialogTitle">
+        <div class="dialog-header">
+          <h2 id="authDialogTitle">账号登录</h2>
+          <p id="authDialogDescription">登录后可以提交挂牌。</p>
+        </div>
+        <form class="listing-form" id="loginForm">
+          <div id="loginFields">
+            <div class="form-field">
+              <label for="loginUsername">用户名 <span class="required" aria-hidden="true">*</span></label>
+              <input id="loginUsername" name="username" type="text" autocomplete="username" maxlength="50" required />
+            </div>
+            <div class="form-field">
+              <label for="loginPassword">密码 <span class="required" aria-hidden="true">*</span></label>
+              <div class="password-field">
+                <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="128" required />
+                <button class="password-toggle" id="toggleLoginPassword" type="button" aria-label="显示密码" title="显示密码" aria-controls="loginPassword" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path class="eye-slash" d="M3 3l18 18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="loggedInPanel" hidden>
+            <p class="field-hint" id="loggedInDescription"></p>
+          </div>
+          <p class="form-message" id="loginFormMessage" role="alert" hidden></p>
+          <div class="dialog-actions">
+            <button class="dialog-cancel" id="closeAuthModal" type="button">取消</button>
+            <button class="dialog-cancel" id="logoutButton" type="button" hidden>安全退出</button>
+            <button class="dialog-submit" id="submitLoginButton" type="submit">登录</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="listing-modal" id="adminModal" hidden>
+      <section class="listing-dialog wide-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDialogTitle" aria-describedby="adminDialogDescription">
+        <div class="dialog-header">
+          <h2 id="adminDialogTitle">手动录入房源</h2>
+          <p id="adminDialogDescription">新增时基础联系信息必填，详细信息按实际情况选填；编辑时保留未修改的值，清空选填项后保存为空。</p>
+        </div>
+        <div class="admin-controls">
+          <div class="admin-modes" role="group" aria-label="房源操作">
+            <button class="dialog-cancel" id="adminCreateMode" type="button" aria-pressed="true">新增房源</button>
+            <button class="dialog-cancel" id="adminEditMode" type="button" aria-pressed="false">补充／编辑已有房源</button>
+          </div>
+          <div class="admin-search" id="adminSearchPanel" hidden>
+            <form id="adminSearchForm" class="form-field">
+              <label for="adminSearchInput">查找现有房源</label>
+              <div class="admin-search-row">
+                <input id="adminSearchInput" type="search" maxlength="200" placeholder="地址、联系人或电话" />
+                <button class="dialog-cancel" id="adminSearchButton" type="submit">搜索</button>
+              </div>
+            </form>
+            <p class="admin-selected" id="adminSearchMessage" role="status" aria-live="polite"></p>
+            <ul class="admin-results" id="adminSearchResults" aria-label="房源搜索结果"></ul>
+            <p class="admin-selected" id="adminSelectedListing" role="status">请搜索并选择要编辑的房源。</p>
+          </div>
+        </div>
+        <form class="listing-form" id="adminListingForm">
+          <fieldset class="admin-fields" id="adminFields">
+          <div class="form-grid">
+            <h3 class="form-section-title">基础信息</h3>
+            <div class="form-field">
+              <label for="adminOwnerName">联系人/业主姓名 <span class="required" aria-hidden="true">*</span></label>
+              <input id="adminOwnerName" name="ownerName" type="text" maxlength="50" autocomplete="name" required />
+            </div>
+            <div class="form-field">
+              <label for="adminOwnerPhone">联系电话 <span class="required" aria-hidden="true">*</span></label>
+              <input id="adminOwnerPhone" name="contactPhone" type="tel" inputmode="numeric" maxlength="11" pattern="1[3-9][0-9]{9}" autocomplete="tel" required />
+            </div>
+            <div class="form-field full-row">
+              <label for="adminPropertyAddress">房源地址 <span class="required" aria-hidden="true">*</span></label>
+              <input id="adminPropertyAddress" name="address" type="text" maxlength="200" minlength="4" autocomplete="street-address" placeholder="小区名称 + 门牌号" required />
+            </div>
+
+            <h3 class="form-section-title">详细房源信息（选填）</h3>
+            <div class="form-field full-row">
+              <label>户型</label>
+              <div class="inline-fields">
+                <div class="input-suffix"><input id="adminBedrooms" name="bedrooms" type="number" min="1" max="20" step="1" placeholder="卧室" /><span>室</span></div>
+                <div class="input-suffix"><input id="adminLivingRooms" name="livingRooms" type="number" min="0" max="20" step="1" placeholder="客厅" /><span>厅</span></div>
+                <div class="input-suffix"><input id="adminBathrooms" name="bathrooms" type="number" min="0" max="20" step="1" placeholder="卫生间" /><span>卫</span></div>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="adminAreaSqm">建筑面积</label>
+              <div class="input-suffix"><input id="adminAreaSqm" name="areaSqm" type="number" min="0.01" max="100000" step="0.01" /><span>㎡</span></div>
+            </div>
+            <div class="form-field">
+              <label for="adminTotalPriceWan">总价</label>
+              <div class="input-suffix"><input id="adminTotalPriceWan" name="totalPriceWan" type="number" min="0.01" max="1000000" step="0.01" /><span>万元</span></div>
+              <p class="field-hint">同时填写面积与总价时，系统会计算并标记单价。</p>
+            </div>
+            <div class="form-field">
+              <label for="adminOrientation">朝向</label>
+              <input id="adminOrientation" name="orientation" type="text" maxlength="30" placeholder="例如：南北" />
+            </div>
+            <div class="form-field">
+              <label>楼层</label>
+              <div class="inline-fields" style="grid-template-columns: 1fr 1fr;">
+                <div class="input-suffix"><input id="adminFloorLevel" name="floorLevel" type="number" min="1" max="1000" step="1" placeholder="所在" /><span>层</span></div>
+                <div class="input-suffix"><input id="adminFloorTotal" name="floorTotal" type="number" min="1" max="1000" step="1" placeholder="总计" /><span>层</span></div>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="adminDecoration">装修</label>
+              <select id="adminDecoration" name="decoration">
+                <option value="">请选择</option><option>毛坯</option><option>简装</option><option>精装</option><option>豪装</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="adminElevator">电梯</label>
+              <select id="adminElevator" name="elevator">
+                <option value="">请选择</option><option>有电梯</option><option>无电梯</option>
+              </select>
+            </div>
+          </div>
+          </fieldset>
+          <p class="form-message" id="adminFormMessage" role="alert" hidden></p>
+          <div class="dialog-actions">
+            <button class="dialog-cancel" id="closeAdminModal" type="button">取消</button>
+            <button class="dialog-submit" id="submitAdminButton" type="submit">保存房源</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <main id="homePage">
+      <section class="hero">
+        <div class="hero-inner">
+
+          <h1>找到适合你的家</h1>
+
+          <form class="search-shell" id="searchForm" role="search">
+            <input id="searchInput" type="search" aria-label="搜索区域、商圈或小区" placeholder="输入区域、商圈或小区名" />
+            <button class="map-button" id="openMap" type="button" aria-label="地图找房" aria-haspopup="dialog">⌖ 地图找房</button>
+            <button class="search-button" type="submit">搜索</button>
+          </form>
+          <div class="quick-links" aria-label="热门搜索">
+            <span>热门：</span>
+            <button type="button" data-keyword="滨江">滨江</button>
+            <button type="button" data-keyword="地铁房">地铁房</button>
+            <button type="button" data-keyword="三室">品质三室</button>
+            <button type="button" data-keyword="近学校">近学校</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="content" id="listings">
+        <div id="localSyncPanel" class="filter-panel" hidden aria-live="polite" style="display:block">
+          <p id="localSyncMessage"></p>
+          <button class="dialog-cancel" id="retryLocalSync" type="button">重试本地同步</button>
+        </div>
+        <div class="filter-panel" aria-label="房源筛选">
+          <div class="field">
+            <label for="district">区域</label>
+            <select id="district"><option value="">不限区域</option><option>滨江</option><option>城西</option><option>市中心</option></select>
+          </div>
+          <div class="field">
+            <label for="layout">户型</label>
+            <select id="layout"><option value="">不限户型</option><option>两室</option><option>三室</option><option>四室及以上</option></select>
+          </div>
+          <div class="field">
+            <label for="price">总价</label>
+            <select id="price"><option value="">不限总价</option><option>300 万以内</option><option>300–500 万</option><option>500 万以上</option></select>
+          </div>
+          <div class="field">
+            <label for="area">面积</label>
+            <select id="area"><option value="">不限面积</option><option>90㎡以内</option><option>90–120㎡</option><option>120㎡以上</option></select>
+          </div>
+          <div class="field">
+            <label for="decoration">装修</label>
+            <select id="decoration"><option value="">不限装修</option><option>精装</option><option>简装</option><option>毛坯</option></select>
+          </div>
+          <button class="clear-filter" id="clearFilter" type="button">重置条件</button>
+        </div>
+
+        <div class="result-bar">
+          <div>
+            <h2>精选二手房</h2>
+            <p>当前已收录 <span class="result-count" id="resultCount">0</span> 套房源</p>
+          </div>
+          <div class="sort"><label for="sort">排序</label><select id="sort"><option>默认排序</option><option>总价从低到高</option><option>面积从大到小</option><option>挂牌时长从短到长</option></select></div>
+        </div>
+
+        <div class="listing-grid" id="listingGrid">
+          <article class="listing-card" data-search="" data-district="" data-layout="" data-price="0" data-area="0" data-decoration="" data-date="">
+            <div class="card-image">
+              <img src="assets/home-1.png" alt="明亮现代客厅与阳台" />
+              <div class="badge-row"><span class="badge new">样式预览</span><span class="badge">标签位置</span></div>
+              <button class="favorite" type="button" aria-label="收藏房源">♡</button>
+            </div>
+            <div class="card-body">
+              <div class="card-heading"><h3>房源标题待录入</h3></div>
+              <div class="community">⌖ 小区名称 · 小区均价 —元/m²</div>
+              <div class="key-facts"><div class="fact"><strong>—万</strong><span>总价</span></div><div class="fact"><strong>—室—厅</strong><span>户型</span></div><div class="fact"><strong>—m²</strong><span>面积</span></div></div>
+              <dl class="detail-list">
+                <div><dt>朝向</dt><dd>待录入</dd></div><div><dt>楼层</dt><dd>第—层 / 共—层</dd></div><div><dt>装修</dt><dd>待录入</dd></div>
+              </dl>
+              <div class="listed-time"><span>挂牌时间：待录入</span><strong>挂牌时长：自动计算</strong></div>
+            </div>
+          </article>
+
+          <article class="listing-card" data-search="" data-district="" data-layout="" data-price="0" data-area="0" data-decoration="" data-date="">
+            <div class="card-image">
+              <img src="assets/home-2.png" alt="温暖木色家庭客餐厅" />
+              <div class="badge-row"><span class="badge new">样式预览</span></div>
+              <button class="favorite" type="button" aria-label="收藏房源">♡</button>
+            </div>
+            <div class="card-body">
+              <div class="card-heading"><h3>房源标题待录入</h3></div>
+              <div class="community">⌖ 小区名称 · 小区均价 —元/m²</div>
+              <div class="key-facts"><div class="fact"><strong>—万</strong><span>总价</span></div><div class="fact"><strong>—室—厅</strong><span>户型</span></div><div class="fact"><strong>—m²</strong><span>面积</span></div></div>
+              <dl class="detail-list">
+                <div><dt>朝向</dt><dd>待录入</dd></div><div><dt>楼层</dt><dd>第—层 / 共—层</dd></div><div><dt>装修</dt><dd>待录入</dd></div>
+              </dl>
+              <div class="listed-time"><span>挂牌时间：待录入</span><strong>挂牌时长：自动计算</strong></div>
+            </div>
+          </article>
+
+          <article class="listing-card" data-search="" data-district="" data-layout="" data-price="0" data-area="0" data-decoration="" data-date="">
+            <div class="card-image">
+              <img src="assets/home-3.png" alt="干净通透的城市住宅客厅" />
+              <div class="badge-row"><span class="badge new">样式预览</span></div>
+              <button class="favorite" type="button" aria-label="收藏房源">♡</button>
+            </div>
+            <div class="card-body">
+              <div class="card-heading"><h3>房源标题待录入</h3></div>
+              <div class="community">⌖ 小区名称 · 小区均价 —元/m²</div>
+              <div class="key-facts"><div class="fact"><strong>—万</strong><span>总价</span></div><div class="fact"><strong>—室—厅</strong><span>户型</span></div><div class="fact"><strong>—m²</strong><span>面积</span></div></div>
+              <dl class="detail-list">
+                <div><dt>朝向</dt><dd>待录入</dd></div><div><dt>楼层</dt><dd>第—层 / 共—层</dd></div><div><dt>装修</dt><dd>待录入</dd></div>
+              </dl>
+              <div class="listed-time"><span>挂牌时间：待录入</span><strong>挂牌时长：自动计算</strong></div>
+            </div>
+          </article>
+        </div>
+        <div class="empty-state" id="emptyState" role="status" aria-live="polite"><strong id="emptyStateTitle">没有找到符合条件的房源</strong><br /><br /><span id="emptyStateDescription">换个区域或放宽筛选条件试试。</span></div>
+      </section>
+    </main>
+
+    <main class="content detail-page" id="detailPage" hidden>
+      <div class="detail-toolbar">
+        <button class="surface-button" id="backFromDetail" type="button">返回列表</button>
+        <button class="surface-button" id="detailFavorite" type="button" aria-pressed="false" hidden>收藏房源</button>
+        <button class="surface-button" id="retryDetail" type="button" hidden>重试</button>
+      </div>
+      <article class="detail-surface" id="detailContent" aria-live="polite"></article>
+    </main>
+    <div class="map-modal" id="mapModal" hidden>
+      <section class="map-dialog" role="dialog" aria-modal="true" aria-labelledby="mapTitle" aria-describedby="mapHelp">
+        <div class="map-toolbar">
+          <h2 id="mapTitle">地图找房</h2>
+          <button class="surface-button" id="fitMap" type="button">显示全部位置</button>
+          <button class="surface-button" id="retryMap" type="button">重试</button>
+          <button class="surface-button" id="closeMap" type="button" aria-label="关闭地图">关闭</button>
+        </div>
+        <p class="map-status" id="mapHelp">拖动地图或双指缩放；键盘方向键移动，+ / - 缩放。同址房源标记展开显示，坐标不变。</p>
+        <p class="map-status" id="mapStatus" role="status" aria-live="polite"></p>
+        <div class="map-layout">
+          <div class="map-canvas" id="mapCanvas" tabindex="0" role="region" aria-label="房源位置地图"></div>
+          <aside class="map-results"><h3>当前结果</h3><ol id="mapResults"></ol></aside>
+        </div>
+      </section>
+    </div>
+
+    <footer class="footer">Nexthome 房源库</footer>
+
+    <script>
+      // Only interface copy is bound for translation. Form values, option values,
+      // listing records and session state never pass through the translation layer.
+      const englishCopy = {
+        '来源': 'Source', '采集时间': 'Collected on', '挂牌时长': 'Days listed', '数据说明': 'Data note',
+        '房源详情': 'Property details', '返回列表': 'Back to results', '返回地图': 'Back to map', '查看详情': 'View details',
+        '暂无图片': 'No image available', '暂无信息': 'No information available', '重试': 'Retry', '关闭地图': 'Close map',
+        '关闭': 'Close', '关闭房源浮窗': 'Close property popup', '显示全部位置': 'Show all locations', '当前结果': 'Current results',
+        '房源位置地图': 'Property locations map', '标题': 'Title', '挂牌时间': 'Listed on', '户号': 'Unit', '楼栋': 'Building',
+        '小区': 'Community', '所在楼层': 'Current floor', '总楼层': 'Total floors', '联系电话': 'Contact phone',
+        '已收藏': 'Saved', '地图正在加载…': 'Loading map…', '正在定位房源…': 'Locating properties…',
+        '正在加载房源详情…': 'Loading property details…', '房源不存在或已下架。': 'Property not found or no longer available.',
+        '地图服务尚未配置，请联系管理员。': 'Map service is not configured. Please contact the administrator.',
+        '地图加载失败，请重试。': 'Unable to load the map. Please retry.', '没有可定位的房源。': 'No properties could be located.',
+        '地址缺失，无法定位。': 'Address missing; unable to locate.', '地址定位失败，请重试。': 'Address lookup failed. Please retry.',
+        '地址定位结果不明确，无法标记。': 'Address lookup is ambiguous; no marker added.',
+        '坐标系未知，且地址缺失，无法定位。': 'Unknown coordinate system and missing address; unable to locate.',
+        '按原始地址定位，位置仅供参考。': 'Located by the original address; location is approximate.',
+        '使用已有坐标。': 'Using existing coordinates.', '定位失败': 'Location unavailable',
+        '拖动地图或双指缩放；键盘方向键移动，+ / - 缩放。同址房源标记展开显示，坐标不变。': 'Drag or pinch to zoom. Use arrow keys to pan and + / - to zoom. Markers sharing a location are spread visually; coordinates stay unchanged.',
+        '切换语言': 'Language', '主导航': 'Main navigation', '二手房': 'Resale homes', '新房': 'New homes',
+        '小区': 'Communities', '房产资讯': 'Property news', '房屋信息': 'Properties',
+        '手动录入房源': 'Manage properties', '挂牌': 'List a home', '登录 / 注册': 'Log in / Register',
+        '房屋挂牌': 'List your home', '留下房屋与联系方式，Nexthome 顾问将尽快与您联系。': 'Leave your property and contact details. A Nexthome advisor will contact you soon.',
+        '姓名': 'Name', '电话': 'Phone', '详细住址': 'Full address', '请输入您的姓名': 'Enter your name',
+        '请输入 11 位手机号': 'Enter an 11-digit mobile number', '例如：春江花月小区 3 幢 1202 室': 'Community name, building and apartment number',
+        '请填写小区名称和具体门牌号。': 'Enter the community name and full street or apartment number.',
+        '取消': 'Cancel', '提交挂牌': 'Submit listing', '挂牌信息已提交，我们会尽快联系您。': 'Your listing has been submitted. We will contact you soon.',
+        '账号登录': 'Log in', '账号信息': 'Account', '登录后可以提交挂牌。': 'Log in to submit a property listing.',
+        '用户名': 'Username', '密码': 'Password', '显示密码': 'Show password', '隐藏密码': 'Hide password',
+        '安全退出': 'Log out', '登录': 'Log in', '管理员': 'Administrator', '普通用户': 'User',
+        '查看账号或安全退出': 'View account or log out', '登录中…': 'Logging in…', '已安全退出登录。': 'You have logged out.',
+        '新增时基础联系信息必填，详细信息按实际情况选填；编辑时保留未修改的值，清空选填项后保存为空。': 'Contact details are required for new listings; other details are optional. When editing, unchanged values are retained and cleared optional fields are saved as empty.',
+        '房源操作': 'Property actions', '新增房源': 'Add property', '补充／编辑已有房源': 'Edit existing property',
+        '查找现有房源': 'Find an existing property', '地址、联系人或电话': 'Address, contact name or phone',
+        '搜索': 'Search', '房源搜索结果': 'Property search results', '请搜索并选择要编辑的房源。': 'Search for and select a property to edit.',
+        '基础信息': 'Basic information', '联系人/业主姓名': 'Contact / owner name', '联系电话': 'Contact phone',
+        '房源地址': 'Property address', '小区名称 + 门牌号': 'Community name + address number',
+        '详细房源信息（选填）': 'Property details (optional)', '户型': 'Layout', '卧室': 'Bedrooms', '客厅': 'Living rooms',
+        '卫生间': 'Bathrooms', '室': 'bed', '厅': 'living', '卫': 'bath', '建筑面积': 'Floor area', '总价': 'Total price',
+        '万元': 'CNY 10k', '同时填写面积与总价时，系统会计算并标记单价。': 'Enter both area and total price to calculate the price per square metre.',
+        '朝向': 'Facing', '例如：南北': 'e.g. North / South', '楼层': 'Floor', '所在': 'Current', '总计': 'Total', '层': 'floor',
+        '装修': 'Condition', '请选择': 'Select', '毛坯': 'Unfinished', '简装': 'Basic finish', '精装': 'Fully finished',
+        '精装修': 'Fully finished', '豪装': 'Luxury finish', '电梯': 'Elevator', '有电梯': 'With elevator', '无电梯': 'No elevator',
+        '有': 'Yes', '无': 'No', '保存房源': 'Save property', '保存修改': 'Save changes', '处理中…': 'Processing…',
+        '找到适合你的家': 'Find the right home for you', '搜索区域、商圈或小区': 'Search by area, neighbourhood or community',
+        '输入区域、商圈或小区名': 'Enter an area, neighbourhood or community', '地图找房': 'Find homes on map', '⌖ 地图找房': '⌖ Map search',
+        '热门搜索': 'Popular searches', '热门：': 'Popular:', '滨江': 'Riverside', '城西': 'West city', '市中心': 'City centre',
+        '地铁房': 'Near metro', '品质三室': 'Three bedrooms', '近学校': 'Near schools', '房源筛选': 'Property filters',
+        '区域': 'Area', '不限区域': 'Any area', '不限户型': 'Any layout', '一室': '1 bedroom', '两室': '2 bedrooms',
+        '三室': '3 bedrooms', '四室及以上': '4+ bedrooms', '不限总价': 'Any price', '300 万以内': 'Under CNY 3M',
+        '300–500 万': 'CNY 3–5M', '500 万以上': 'Over CNY 5M', '面积': 'Area', '不限面积': 'Any size',
+        '90㎡以内': 'Under 90 m²', '90–120㎡': '90–120 m²', '120㎡以上': 'Over 120 m²', '不限装修': 'Any condition',
+        '重置条件': 'Reset filters', '精选二手房': 'Featured resale homes', '当前已收录': 'Currently listed:', '套房源': 'properties',
+        '排序': 'Sort', '默认排序': 'Default order', '总价从低到高': 'Price: low to high', '面积从大到小': 'Area: large to small',
+        '挂牌时长从短到长': 'Time listed: newest first', '明亮现代客厅与阳台': 'Bright modern living room and balcony',
+        '温暖木色家庭客餐厅': 'Warm wood-toned living and dining room', '干净通透的城市住宅客厅': 'Bright city apartment living room',
+        '样式预览': 'Style preview', '标签位置': 'Tag position', '收藏房源': 'Save property', '房源标题待录入': 'Property title pending',
+        '⌖ 小区名称 · 小区均价 —元/m²': '⌖ Community · Reference price — CNY/m²', '—万': '— CNY 10k', '—室—厅': '— bed / — living',
+        '待录入': 'Pending', '第—层 / 共—层': 'Floor — / —', '挂牌时间：待录入': 'Listed: pending', '挂牌时长：自动计算': 'Days listed: calculated automatically',
+        '没有找到符合条件的房源': 'No matching properties', '换个区域或放宽筛选条件试试。': 'Try another area or broaden your filters.',
+        'Nexthome 房源库': 'Nexthome Property Library', 'Nexthome｜房源库': 'Nexthome | Property Library',
+        'Nexthome 房源浏览原型，支持按区域、户型、价格、面积等条件查找和比较房源。': 'Browse and compare Nexthome properties by area, layout, price and size.',
+        '暂无房源图片': 'No property photo', '单价': 'Price / m²', '单价（计算值）': 'Price / m² (calculated)', '地铁': 'Metro', '地址': 'Address', '联系人': 'Contact',
+        '低于参考价': 'Below reference price', '明显低于参考价': 'Well below reference price', '高于参考价': 'Above reference price', '明显高于参考价': 'Well above reference price',
+        '中楼层': 'Mid floor', '低楼层': 'Low floor', '高楼层': 'High floor', '南北': 'North / South', '南': 'South', '北': 'North',
+        '东': 'East', '西': 'West', '东南': 'Southeast', '西南': 'Southwest', '东北': 'Northeast', '西北': 'Northwest',
+        '正在加载房源…': 'Loading properties…', '正在搜索…': 'Searching…', '提交中…': 'Submitting…',
+        '没有找到匹配房源，请换个关键词。': 'No matching properties. Try another keyword.',
+        '尚未修改任何字段。': 'No fields have been changed.', '所在楼层不能大于总楼层。': 'The current floor cannot exceed the total number of floors.',
+        '所在楼层和总楼层需要同时填写。': 'Enter both the current floor and total number of floors.',
+        '房源已保存，列表刷新失败。输入已保留，可关闭后刷新页面；再次保存不会新增重复房源。': 'The property was saved, but the list could not refresh. Your input is retained. Close and refresh the page; saving again will not create a duplicate.',
+        '房源修改已保存，房屋信息列表已更新。': 'Changes saved. The property list has been updated.',
+        '房源已录入并更新到房屋信息列表。': 'Property saved and added to the property list.',
+        '重试本地同步': 'Retry local sync',
+        '云端已保存；等待本机同步。': 'Saved to cloud; waiting for this device to sync.',
+        '云端已保存；本机已同步到 listing-data。': 'Saved to cloud; synced to listing-data on this device.',
+        '云端已保存；本地同步失败，将自动重试，也可手动重试。': 'Saved to cloud; local sync failed. Automatic and manual retries are available.',
+        '云端已保存；无法连接本地同步程序。请启动程序并允许浏览器访问本地网络，再重试。': 'Saved to cloud; cannot connect to the local sync program. Start it and allow browser local network access, then retry.',
+        '云端已保存；请在本地同步程序中使用当前网站账号登录。': 'Saved to cloud; sign in to the local sync program with your current website account.',
+        '云端已保存；本地登录已失效，请重启同步程序并重新登录。': 'Saved to cloud; the local session expired. Restart the sync program and sign in again.',
+        '云端已保存；该房源早于本机首次启用同步，按规则不导出历史房源。': 'Saved to cloud; this property predates first activation on this device. Historical properties are excluded.',
+        '云端已保存；列表刷新失败，请刷新页面。': 'Saved to cloud; the list could not refresh. Reload the page.',
+        '登录状态加载失败。': 'Unable to load your session.', '请输入姓名。': 'Enter a name.',
+        '请输入有效的 11 位手机号。': 'Enter a valid 11-digit mobile number.', '请输入详细住址。': 'Enter the full address.',
+        '房源加载失败，请重新选择后重试。': 'Unable to load the property. Select it again to retry.', '房源加载失败，请重试。': 'Unable to load the property. Please retry.',
+        '搜索失败，请重试。': 'Search failed. Please retry.', '登录失败，请稍后重试。': 'Login failed. Please try again later.',
+        '退出失败，请稍后重试。': 'Logout failed. Please try again later.', '房源保存失败，请稍后重试。': 'Unable to save the property. Please try again later.',
+        '请先登录后再操作。': 'Please log in to continue.', '当前账号没有管理员权限。': 'This account does not have administrator access.',
+        '登录信息格式不正确。': 'Invalid login details.', '用户名或密码错误。': 'Incorrect username or password.',
+        '登录尝试过于频繁，请稍后重试。': 'Too many login attempts. Please try again later.', '登录服务暂时不可用，请稍后重试。': 'Login is temporarily unavailable. Please try again later.',
+        '房源信息格式不正确。': 'Invalid property details.', '包含不允许修改的字段。': 'The request contains fields that cannot be edited.',
+        '文本字段格式不正确。': 'Invalid text field format.', '填写所在楼层时也请填写总楼层。': 'Enter the total number of floors as well.',
+        '填写总楼层时也请填写所在楼层。': 'Enter the current floor as well.', '装修类型不正确。': 'Invalid property condition.',
+        '电梯选项不正确。': 'Invalid elevator option.', '房源 ID 格式不正确。': 'Invalid property ID.', '房源不存在，请重新搜索。': 'Property not found. Please search again.',
+        '提交内容格式不正确，请检查后重试。': 'Invalid submission. Check your input and retry.', '请求来源校验失败。': 'Request origin verification failed.',
+        '接口不存在或请求方式不受支持。': 'The endpoint or request method is not supported.', '服务暂时不可用，请稍后重试。': 'Service temporarily unavailable. Please try again later.',
+        '卧室数量': 'Bedroom count', '客厅数量': 'Living room count', '卫生间数量': 'Bathroom count', '所在楼层': 'Current floor', '总楼层': 'Total floors',
+        '请填写此项。': 'Please fill in this field.', '请输入符合要求的内容。': 'Please enter a value in the required format.',
+        '请输入有效的数字。': 'Please enter a valid number.', '数值超出允许范围。': 'The value is outside the allowed range.',
+        '请按允许的步长填写数值。': 'Please enter a value with the allowed increment.', '输入长度不符合要求。': 'The input length does not meet the requirements.',
+        '房源列表加载失败': 'Unable to load properties', '请稍后刷新页面重试。': 'Refresh the page to try again later.',
+        '请求超时，请重试。': 'The request timed out. Please retry.',
+        '暂无房源': 'No properties yet', '目前没有可显示的房源。': 'There are no properties to display yet.'
+      };
+      let language = 'zh-CN';
+      try { if (localStorage.getItem('nexthome.language') === 'en') language = 'en'; } catch { /* Storage may be unavailable. */ }
+      const uiBindings = new Map();
+      const attributeKeys = new WeakMap();
+      const validityBindings = new Map();
+      const languageSwitch = document.getElementById('languageSwitch');
+      const languageButton = document.getElementById('languageButton');
+      const languageMenu = document.getElementById('languageMenu');
+      const languageOptions = [...languageMenu.querySelectorAll('[data-language]')];
+      let languageMenuPinned = false;
+
+      function translateUI(raw) {
+        const text = String(raw ?? '');
+        if (language === 'zh-CN' || !text) return text;
+        if (Object.hasOwn(englishCopy, text)) return englishCopy[text];
+        const patterns = [
+          [/^(.+) · (管理员|普通用户)$/, (_, name, role) => `${name} · ${englishCopy[role]}`],
+          [/^当前登录：(.+)（(管理员|普通用户)）$/, (_, name, role) => `Logged in: ${name} (${englishCopy[role]})`],
+          [/^欢迎回来，(.*)$/, (_, name) => `Welcome back, ${name}`],
+          [/^已选择：(.*) · ID：(.*)$/, (_, address, id) => `Selected: ${address} · ID: ${id}`],
+          [/^找到 (\d+) 套房源(.*)。$/, (_, count) => `Found ${count} properties. ${Number(count) > 50 ? 'Showing the first 50; narrow your search.' : 'Select a property to edit.'}`],
+          [/^联系人：(.*)$/, (_, contact) => `Contact: ${contact}`],
+          [/^⌖ (.*) · 小区参考价 (.+)万\/㎡$/, (_, name, price) => `⌖ ${name} · Reference price ${price} CNY 10k/m²`],
+          [/^(.+)房源$/, (_, name) => `${name} property`],
+          [/^(-?[\d.]+)万$/, (_, price) => `${price} CNY 10k`],
+          [/^(-?[\d.]+)万\/㎡$/, (_, price) => `${price} CNY 10k/m²`],
+          [/^(\d+)\/(\d+)层$/, (_, current, total) => `Floor ${current} / ${total}`],
+          [/^挂牌日期：(.*)$/, (_, date) => `Listed: ${date}`],
+          [/^挂牌时长：(\d*)天?$/, (_, days) => `Days listed: ${days}`],
+          [/^录入时间：(.*)$/, (_, date) => `Added: ${date}`],
+          [/^房源数据加载失败：(\d+)$/, (_, status) => `Unable to load properties (${status}).`],
+          [/^(.+)不能超过 (\d+) 个字符。$/, (_, field, max) => `${englishCopy[field] || 'This field'} cannot exceed ${max} characters.`],
+          [/^(.+)格式不正确。$/, (_, field) => `Invalid format for ${englishCopy[field] || 'this field'}.`],
+          [/^(.+)必须是有效的(数字|非负数|正数)。$/, (_, field, kind) => `${englishCopy[field] || 'This field'} must be a valid ${kind === '非负数' ? 'non-negative number' : kind === '正数' ? 'positive number' : 'number'}.`],
+          [/^(\d+) 号线(.+?)站 (.+)$/, (_, line, station, distance) => `Line ${line} · ${station} · ${distance}`]
+        ];
+        for (const [pattern, formatter] of patterns) if (pattern.test(text)) return text.replace(pattern, formatter);
+        if (/^(?:\d+室)?(?:\d+厅)?(?:\d+卫)?$/.test(text)) {
+          return text.replace(/(\d+)室/g, '$1 bed / ').replace(/(\d+)厅/g, '$1 living / ').replace(/(\d+)卫/g, '$1 bath / ').replace(/ \/ $/, '');
+        }
+        return text;
+      }
+
+      function uiText(element, source) {
+        const render = () => { element.textContent = translateUI(typeof source === 'function' ? source() : source); };
+        uiBindings.set(element, render);
+        render();
+      }
+      function uiAttribute(element, attribute, source) {
+        // Attribute bindings use a separate key so text and labels can coexist.
+        if (!attributeKeys.has(element)) attributeKeys.set(element, new Map());
+        const keys = attributeKeys.get(element);
+        if (!keys.has(attribute)) keys.set(attribute, { element });
+        const key = keys.get(attribute);
+        const render = () => element.setAttribute(attribute, translateUI(typeof source === 'function' ? source() : source));
+        uiBindings.set(key, render);
+        render();
+      }
+      function uiError(error, fallback) {
+        const raw = error instanceof Error ? error.message : fallback;
+        return () => language === 'en' && translateUI(raw) === raw ? translateUI(fallback) : raw;
+      }
+      function setValidity(input, message) {
+        validityBindings.set(input, message);
+        input.setCustomValidity(translateUI(message));
+      }
+      function localizedOption(label, value) {
+        const option = new Option(label, value);
+        uiText(option, label);
+        return option;
+      }
+      function bindStaticUI(container) {
+        // Capture only known, authored interface nodes before inserting business data.
+        container.querySelectorAll('option').forEach(option => {
+          if (!option.hasAttribute('value')) option.value = option.textContent;
+        });
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode;
+          if (node.parentElement.closest('script, style')) continue;
+          const source = node.textContent;
+          if (Object.hasOwn(englishCopy, source.trim())) {
+            const render = () => { node.textContent = source.replace(source.trim(), translateUI(source.trim())); };
+            uiBindings.set(node, render);
+            render();
+          }
+        }
+        container.querySelectorAll('[placeholder], [aria-label], [title], meta[name="description"]').forEach(element => {
+          for (const attribute of ['placeholder', 'aria-label', 'title', 'content']) {
+            const source = element.getAttribute(attribute);
+            if (source && Object.hasOwn(englishCopy, source)) uiAttribute(element, attribute, source);
+          }
+        });
+      }
+      function setLanguage(next) {
+        if (!['zh-CN', 'en'].includes(next)) return;
+        language = next;
+        document.documentElement.lang = next;
+        try { localStorage.setItem('nexthome.language', next); } catch { /* Switching still works without storage. */ }
+        for (const [key, render] of uiBindings) {
+          if ((key.element || key).isConnected) render();
+          else uiBindings.delete(key);
+        }
+        for (const [input, message] of validityBindings) input.setCustomValidity(translateUI(message));
+        languageOptions.forEach(option => option.setAttribute('aria-checked', String(option.dataset.language === next)));
+        document.dispatchEvent(new Event('languagechange'));
+      }
+      function toggleLanguageMenu(open, focus = false) {
+        if (!open) languageMenuPinned = false;
+        languageMenu.hidden = !open;
+        languageButton.setAttribute('aria-expanded', String(open));
+        if (open) positionLanguageMenu();
+        if (open && focus) languageOptions.find(option => option.dataset.language === language).focus();
+      }
+      function positionLanguageMenu() {
+        if (window.innerWidth <= 680) {
+          const left = Math.max(13, Math.min(languageButton.getBoundingClientRect().left, window.innerWidth - 173));
+          languageMenu.style.left = `${left}px`;
+        } else languageMenu.style.removeProperty('left');
+      }
+      window.addEventListener('resize', () => { if (!languageMenu.hidden) positionLanguageMenu(); });
+      document.querySelector('.header-actions').addEventListener('scroll', () => { if (!languageMenu.hidden) positionLanguageMenu(); });
+      // Mouse events do not open the menu on touch; the continuous wrapper also
+      // includes the gap above the dropdown so moving into it keeps it open.
+      languageSwitch.addEventListener('mouseenter', () => toggleLanguageMenu(true));
+      languageSwitch.addEventListener('mouseleave', () => {
+        if (!languageMenuPinned && !languageSwitch.contains(document.activeElement)) toggleLanguageMenu(false);
+      });
+      languageButton.addEventListener('click', event => {
+        const open = !languageMenuPinned;
+        toggleLanguageMenu(open, event.detail === 0);
+        languageMenuPinned = open;
+      });
+      languageOptions.forEach(option => option.addEventListener('click', () => {
+        setLanguage(option.dataset.language);
+        toggleLanguageMenu(false);
+        languageButton.focus();
+      }));
+      languageSwitch.addEventListener('keydown', event => {
+        const index = languageOptions.indexOf(document.activeElement);
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          toggleLanguageMenu(true);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : index < 0 ? (event.key === 'ArrowUp' ? 1 : 0) : (index + (event.key === 'ArrowUp' ? -1 : 1) + 2) % 2;
+          languageOptions[next].focus();
+        } else if (event.key === 'Escape' && !languageMenu.hidden) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleLanguageMenu(false);
+          languageButton.focus();
+        } else if (event.key === 'Tab' && index >= 0) {
+          toggleLanguageMenu(false);
+          languageButton.focus();
+        }
+      });
+      languageSwitch.addEventListener('focusout', event => {
+        if (!languageSwitch.contains(event.relatedTarget)) toggleLanguageMenu(false);
+      });
+      document.addEventListener('click', event => {
+        if (!languageSwitch.contains(event.target)) toggleLanguageMenu(false);
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !languageMenu.hidden) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          toggleLanguageMenu(false);
+          languageButton.focus();
+        }
+      }, true);
+
+      // 房源数据结构：单价与总价分开；户型统一定义房/厅/卫；挂牌时长由挂牌日期实时计算。
+      const listingSchema = Object.freeze({
+        ownerName: null,
+        contactPhone: null,
+        address: null,
+        totalPriceWan: null,
+        unitPricePerSqm: null,
+        layout: { bedrooms: null, livingRooms: null, bathrooms: null },
+        areaSqm: null,
+        orientation: null,
+        floor: { current: null, total: null },
+        decoration: null,
+        elevator: null, // 允许值：“有”或“无”
+        community: { name: null, averageUnitPricePerSqm: null },
+        listedDate: null
+      });
+
+      function calculateListingDays(listedDate, today = new Date()) {
+        if (!listedDate) return null;
+        const start = new Date(`${listedDate}T00:00:00`);
+        if (Number.isNaN(start.getTime())) return null;
+        return Math.max(0, Math.floor((today - start) / 86400000));
+      }
+      let cards = [...document.querySelectorAll('.listing-card')];
+      const listingCardTemplate = cards[0]?.cloneNode(true) || null;
+      bindStaticUI(document);
+      setLanguage(language);
+      const fields = ['district', 'layout', 'price', 'area', 'decoration'].map(id => document.getElementById(id));
+      const searchInput = document.getElementById('searchInput');
+      const resultCount = document.getElementById('resultCount');
+      const emptyState = document.getElementById('emptyState');
+      let propertiesStatus = 'loading';
+      const listingModal = document.getElementById('listingModal');
+      const listingForm = document.getElementById('listingForm');
+      const openListingModalButton = document.getElementById('openListingModal');
+      const closeListingModalButton = document.getElementById('closeListingModal');
+      const listingToast = document.getElementById('listingToast');
+      const propertyInfoButton = document.getElementById('propertyInfoButton');
+      const listingFormMessage = document.getElementById('listingFormMessage');
+      const submitListingButton = document.getElementById('submitListingButton');
+      const ownerNameInput = document.getElementById('ownerName');
+      const ownerPhoneInput = document.getElementById('ownerPhone');
+      const propertyAddressInput = document.getElementById('propertyAddress');
+      const authButton = document.getElementById('authButton');
+      const authModal = document.getElementById('authModal');
+      const loginForm = document.getElementById('loginForm');
+      const loginFields = document.getElementById('loginFields');
+      const loginUsernameInput = document.getElementById('loginUsername');
+      const loginPasswordInput = document.getElementById('loginPassword');
+      const toggleLoginPasswordButton = document.getElementById('toggleLoginPassword');
+      const loginFormMessage = document.getElementById('loginFormMessage');
+      const submitLoginButton = document.getElementById('submitLoginButton');
+      const logoutButton = document.getElementById('logoutButton');
+      const adminModal = document.getElementById('adminModal');
+      const adminListingForm = document.getElementById('adminListingForm');
+      const openAdminModalButton = document.getElementById('openAdminModal');
+      const adminFormMessage = document.getElementById('adminFormMessage');
+      const submitAdminButton = document.getElementById('submitAdminButton');
+      const adminFieldNames = ['ownerName', 'contactPhone', 'address', 'bedrooms', 'livingRooms', 'bathrooms', 'areaSqm', 'totalPriceWan', 'orientation', 'floorLevel', 'floorTotal', 'decoration', 'elevator'];
+      const adminFields = document.getElementById('adminFields');
+      const adminSearchMessage = document.getElementById('adminSearchMessage');
+      let adminMode = 'create';
+      let selectedAdminListing = null;
+      let loadedAdminValues = null;
+      let adminBusy = false;
+      let adminRequestVersion = 0;
+      const adminDrafts = {};
+      let propertyRows = [];
+      let previousFocus = null;
+      let toastTimer = null;
+      let currentUser = null;
+      let authRevision = 0;
+      let pendingAction = null;
+      const localSyncPanel = document.getElementById('localSyncPanel');
+      const localSyncMessage = document.getElementById('localSyncMessage');
+      const retryLocalSync = document.getElementById('retryLocalSync');
+      let localSyncListingId = null;
+      let localSyncOwnerId = null;
+      let localSyncTimer = null;
+      let localSyncRevision = 0;
+      let localSyncChecking = false;
+      let localBridgeTimer = null;
+      let localBridgeBusy = false;
+      let localBridgeRevision = 0;
+      async function localBridgeRequest(path, options = {}) {
+        const controller = new AbortController();
+        const deadline = setTimeout(() => controller.abort(), 18000);
+        try {
+          const response = await fetch(`http://127.0.0.1:47831${path}`, {
+            cache: 'no-store', credentials: 'omit', signal: controller.signal, ...options,
+          });
+          if (!response.ok) throw new Error('local_bridge_unavailable');
+          return await response.json();
+        } finally { clearTimeout(deadline); }
+      }
+      async function runLocalBridge() {
+        if (!currentUser) return;
+        if (localBridgeBusy) { localBridgeTimer = setTimeout(runLocalBridge, 250); return; }
+        const revision = localBridgeRevision;
+        localBridgeBusy = true;
+        try {
+          let state = await localBridgeRequest('/bridge/state');
+          if (!state.userId) {
+            const baselineResponse = await fetch('/api/sync/listings', { cache: 'no-store' });
+            if (!baselineResponse.ok) throw new Error('sync_unavailable');
+            const syncBaseline = await baselineResponse.json();
+            if (syncBaseline.userId !== currentUser.id) throw new Error('bridge_account_mismatch');
+            await localBridgeRequest('/bridge/initialize', { method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ userId: currentUser.id, cursor: syncBaseline.cursor }) });
+            state = await localBridgeRequest('/bridge/state');
+          }
+          if (state.userId !== currentUser.id) throw new Error('bridge_account_mismatch');
+          if (state.exportHistory && !state.historyComplete) {
+            let cursor = state.historyCursor || '';
+            for (let pageNumber = 0; pageNumber < 20; pageNumber++) {
+              const response = await fetch(`/api/sync/listings?history=1&before=${state.startCursor}&after=${encodeURIComponent(cursor)}`, { cache: 'no-store' });
+              if (!response.ok) throw new Error('history_unavailable');
+              const page = await response.json();
+              await localBridgeRequest('/bridge/history', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(page) });
+              cursor = page.cursor;
+              if (page.done) break;
+            }
+            state = await localBridgeRequest('/bridge/state');
+          }
+          for (let pageNumber = 0; pageNumber < 20; pageNumber++) {
+            const response = await fetch(`/api/sync/listings?after=${state.cursor}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error('sync_unavailable');
+            const page = await response.json();
+            await localBridgeRequest('/bridge/events', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(page) });
+            if (page.cursor === state.cursor) break;
+            state.cursor = page.cursor;
+          }
+          if (revision === localBridgeRevision && localSyncListingId) {
+            clearTimeout(localSyncTimer); localSyncTimer = setTimeout(checkLocalSync, 0);
+          }
+        } catch { /* The status panel reports local availability for saved listings. */ }
+        finally {
+          localBridgeBusy = false;
+          if (revision === localBridgeRevision && currentUser) localBridgeTimer = setTimeout(runLocalBridge, 5000);
+        }
+      }
+      function showLocalSyncState(state) {
+        const messages = {
+          pending: '云端已保存；等待本机同步。',
+          synced: '云端已保存；本机已同步到 listing-data。',
+          failed: '云端已保存；本地同步失败，将自动重试，也可手动重试。',
+          offline: '云端已保存；无法连接本地同步程序。请启动程序并允许浏览器访问本地网络，再重试。',
+          mismatch: '云端已保存；请在本地同步程序中使用当前网站账号登录。',
+          auth_required: '云端已保存；本地登录已失效，请重启同步程序并重新登录。',
+          before_start: '云端已保存；该房源早于本机首次启用同步，按规则不导出历史房源。',
+        };
+        uiText(localSyncMessage, messages[state] || messages.failed);
+        retryLocalSync.hidden = state === 'synced' || state === 'before_start';
+      }
+      async function checkLocalSync(retry = false) {
+        if (!localSyncListingId || localSyncChecking || currentUser?.id !== localSyncOwnerId) return;
+        localSyncChecking = true;
+        retryLocalSync.disabled = true;
+        const revision = localSyncRevision;
+        const controller = new AbortController();
+        const deadline = setTimeout(() => controller.abort(), 18000);
+        try {
+          const response = await fetch(`http://127.0.0.1:47831/${retry ? 'retry' : 'status'}?id=${encodeURIComponent(localSyncListingId)}`, {
+            method: retry ? 'POST' : 'GET', cache: 'no-store', credentials: 'omit', signal: controller.signal,
+            ...(retry ? { headers: { 'content-type': 'application/json' }, body: '{}' } : {}),
+          });
+          if (!response.ok) throw new Error('local_sync_unavailable');
+          const result = await response.json();
+          if (revision === localSyncRevision) showLocalSyncState(result.userId === currentUser?.id ? result.state : 'mismatch');
+        } catch { if (revision === localSyncRevision) showLocalSyncState('offline'); }
+        finally {
+          clearTimeout(deadline); localSyncChecking = false; retryLocalSync.disabled = false;
+          if (localSyncListingId && currentUser?.id === localSyncOwnerId) localSyncTimer = setTimeout(checkLocalSync, 5000);
+        }
+      }
+      function trackLocalSync(id) {
+        if (!id || !currentUser) return;
+        clearTimeout(localSyncTimer); localSyncRevision += 1;
+        localSyncListingId = id; localSyncOwnerId = currentUser.id;
+        localSyncPanel.hidden = false; showLocalSyncState('pending');
+        // This is device-local display state only; cloud data stays authoritative.
+        try { sessionStorage.setItem('nexthome.localSync', JSON.stringify({ id, userId: currentUser.id })); } catch { /* Optional display persistence. */ }
+        // A previous check may still be finishing; schedule the new one after it.
+        localSyncTimer = setTimeout(checkLocalSync, 100);
+      }
+      retryLocalSync.addEventListener('click', () => {
+        clearTimeout(localSyncTimer); clearTimeout(localBridgeTimer);
+        void checkLocalSync(true); localBridgeTimer = setTimeout(runLocalBridge, 0);
+      });
+      authButton.disabled = false;
+      const publicSiteUrl = 'https://qiju-homes.ivanyuanxh.chatgpt.site';
+      if (window.location.protocol === 'file:') {
+        window.location.replace(`${publicSiteUrl}/#listings`);
+      }
+
+      function roleLabel(role) {
+        return role === 'admin' ? '管理员' : role === 'seller' ? (language === 'en' ? 'Seller' : '卖家') : '普通用户';
+      }
+
+      function updateAuthUI(user) {
+        authRevision += 1;
+        currentUser = user || null;
+        document.dispatchEvent(new CustomEvent('nexthome-auth', { detail: currentUser }));
+        localBridgeRevision += 1; clearTimeout(localBridgeTimer);
+        if (currentUser) localBridgeTimer = setTimeout(runLocalBridge, 100);
+        if (currentUser?.id !== localSyncOwnerId) {
+          localSyncRevision += 1; clearTimeout(localSyncTimer);
+          localSyncListingId = null; localSyncOwnerId = null; localSyncPanel.hidden = true;
+          try {
+            const saved = JSON.parse(sessionStorage.getItem('nexthome.localSync') || 'null');
+            if (saved?.userId === currentUser?.id) trackLocalSync(saved.id);
+            else sessionStorage.removeItem('nexthome.localSync');
+          } catch { /* Optional display persistence. */ }
+        }
+        openAdminModalButton.hidden = currentUser?.role !== 'admin';
+        if (currentUser) {
+          uiText(authButton, `${currentUser.username} · ${roleLabel(currentUser.role)}`);
+          uiAttribute(authButton, 'title', '查看账号或安全退出');
+        } else {
+          uiText(authButton, '登录 / 注册');
+          uiAttribute(authButton, 'title', '');
+        }
+      }
+
+      function setLoginMessage(message = '') {
+        uiText(loginFormMessage, message);
+        loginFormMessage.hidden = !message;
+      }
+
+      function renderAuthModal() {
+        const loggedIn = Boolean(currentUser);
+        loginFields.hidden = loggedIn;
+        document.getElementById('loggedInPanel').hidden = !loggedIn;
+        logoutButton.hidden = !loggedIn;
+        submitLoginButton.hidden = loggedIn;
+        uiText(document.getElementById('authDialogTitle'), loggedIn ? '账号信息' : '账号登录');
+        uiText(document.getElementById('loggedInDescription'), loggedIn
+          ? `当前登录：${currentUser.username}（${roleLabel(currentUser.role)}）`
+          : '');
+      }
+
+      function openAuthModal(action = null) {
+        previousFocus = document.activeElement;
+        pendingAction = action;
+        setLoginMessage();
+        renderAuthModal();
+        authModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        if (!currentUser) loginUsernameInput.focus();
+      }
+
+      function closeAuthModal() {
+        setPasswordVisible(false);
+        authModal.hidden = true;
+        document.body.style.overflow = '';
+        pendingAction = null;
+        if (previousFocus) previousFocus.focus();
+      }
+
+      async function loadSession() {
+        const revision = authRevision;
+        try {
+          const { response, result } = await readJSON('/api/auth/session');
+          if (!response.ok) throw new Error('登录状态加载失败。');
+          if (revision === authRevision) updateAuthUI(result.user);
+        } catch {
+          if (revision === authRevision) updateAuthUI(null);
+        }
+      }
+
+      function showToast(message) {
+        clearTimeout(toastTimer);
+        uiText(listingToast, message);
+        listingToast.hidden = false;
+        toastTimer = setTimeout(() => { listingToast.hidden = true; }, 3200);
+      }
+
+      function setFormMessage(message = '') {
+        uiText(listingFormMessage, message);
+        listingFormMessage.hidden = !message;
+      }
+
+      function validateListingForm() {
+        const ownerName = ownerNameInput.value.trim();
+        const contactPhone = ownerPhoneInput.value.trim();
+        const address = propertyAddressInput.value.trim();
+        setValidity(ownerNameInput, ownerName ? '' : '请输入姓名。');
+        setValidity(ownerPhoneInput, /^1[3-9]\d{9}$/.test(contactPhone) ? '' : '请输入有效的 11 位手机号。');
+        setValidity(propertyAddressInput,
+          address.length >= 4 && /\d/.test(address) ? '' : '请填写小区名称和具体门牌号。'
+        );
+        return listingForm.reportValidity();
+      }
+
+      function openListingModal() {
+        if (window.location.protocol === 'file:') {
+          window.location.href = `${publicSiteUrl}/#listings`;
+          return;
+        }
+        if (!currentUser) {
+          openAuthModal('listing');
+          return;
+        }
+        previousFocus = document.activeElement;
+        setFormMessage();
+        listingModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        ownerNameInput.focus();
+      }
+
+      function closeListingModal() {
+        listingModal.hidden = true;
+        document.body.style.overflow = '';
+        if (previousFocus) previousFocus.focus();
+      }
+
+      function setAdminFormMessage(message = '') {
+        uiText(adminFormMessage, message);
+        adminFormMessage.hidden = !message;
+      }
+
+      // Browser-native validation messages follow the browser's locale. Display
+      // our own localized messages while retaining the same constraint checks.
+      for (const [form, showMessage] of [[listingForm, setFormMessage], [loginForm, setLoginMessage], [adminListingForm, setAdminFormMessage]]) {
+        form.addEventListener('invalid', event => {
+          event.preventDefault();
+          const input = event.target;
+          const validity = input.validity;
+          const message = validity.customError ? validityBindings.get(input)
+            : validity.valueMissing ? '请填写此项。'
+            : validity.rangeOverflow || validity.rangeUnderflow ? '数值超出允许范围。'
+            : validity.stepMismatch ? '请按允许的步长填写数值。'
+            : validity.badInput ? '请输入有效的数字。'
+            : validity.tooLong || validity.tooShort ? '输入长度不符合要求。'
+            : '请输入符合要求的内容。';
+          showMessage(message || '请输入符合要求的内容。');
+        }, true);
+      }
+
+      function openAdminModal() {
+        if (currentUser?.role !== 'admin') return;
+        previousFocus = document.activeElement;
+        setAdminFormMessage();
+        adminModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        (adminMode === 'edit' ? document.getElementById('adminSearchInput') : document.getElementById('adminOwnerName')).focus();
+      }
+
+      function closeAdminModal() {
+        adminModal.hidden = true;
+        document.body.style.overflow = '';
+        if (previousFocus) previousFocus.focus();
+      }
+
+      function optionalFormValue(formData, name) {
+        const value = String(formData.get(name) || '').trim();
+        return value || null;
+      }
+
+      function readAdminValues() {
+        return Object.fromEntries(adminFieldNames.map(name => [name, adminListingForm.elements.namedItem(name).value.trim() || null]));
+      }
+
+      function populateAdminValues(values = {}) {
+        adminFieldNames.forEach(name => {
+          const input = adminListingForm.elements.namedItem(name);
+          const value = values[name] == null ? '' : String(values[name]);
+          if (input.tagName === 'SELECT' && value && ![...input.options].some(option => option.value === value)) {
+            input.add(localizedOption(value, value));
+          }
+          input.value = value;
+          setValidity(input, '');
+        });
+      }
+
+      function updateAdminControls() {
+        document.getElementById('adminCreateMode').setAttribute('aria-pressed', String(adminMode === 'create'));
+        document.getElementById('adminEditMode').setAttribute('aria-pressed', String(adminMode === 'edit'));
+        document.getElementById('adminSearchPanel').hidden = adminMode !== 'edit';
+        adminFields.disabled = adminBusy || (adminMode === 'edit' && !selectedAdminListing);
+        submitAdminButton.disabled = adminFields.disabled;
+        uiText(submitAdminButton, adminBusy ? '处理中…' : adminMode === 'edit' ? '保存修改' : '保存房源');
+        ['adminCreateMode', 'adminEditMode', 'adminSearchButton'].forEach(id => { document.getElementById(id).disabled = adminBusy; });
+        document.querySelectorAll('#adminSearchResults button').forEach(button => { button.disabled = adminBusy; });
+        uiText(document.getElementById('adminSelectedListing'), selectedAdminListing
+          ? `已选择：${selectedAdminListing.address} · ID：${selectedAdminListing.id}`
+          : '请搜索并选择要编辑的房源。');
+        ['ownerName', 'contactPhone', 'address'].forEach(name => {
+          const input = adminListingForm.elements.namedItem(name);
+          input.required = adminMode === 'create' || Boolean(loadedAdminValues?.[name]) || Boolean(input.value.trim());
+        });
+      }
+
+      function switchAdminMode(mode) {
+        if (adminBusy || adminMode === mode) return;
+        adminDrafts[adminMode] = { values: readAdminValues(), listing: selectedAdminListing, baseline: loadedAdminValues };
+        adminMode = mode;
+        adminRequestVersion += 1;
+        const draft = adminDrafts[mode];
+        selectedAdminListing = draft?.listing || null;
+        loadedAdminValues = draft?.baseline || null;
+        populateAdminValues(draft?.values);
+        setAdminFormMessage();
+        updateAdminControls();
+      }
+
+      document.getElementById('adminCreateMode').addEventListener('click', () => switchAdminMode('create'));
+      document.getElementById('adminEditMode').addEventListener('click', () => switchAdminMode('edit'));
+
+      async function selectAdminListing(id) {
+        if (adminBusy) return;
+        const version = ++adminRequestVersion;
+        adminBusy = true;
+        updateAdminControls();
+        setAdminFormMessage('正在加载房源…');
+        try {
+          const response = await fetch(`/api/admin/listings/${encodeURIComponent(id)}`, { cache: 'no-store' });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.listing) throw new Error(result.error || '房源加载失败，请重新选择后重试。');
+          if (version !== adminRequestVersion) return;
+          selectedAdminListing = result.listing;
+          populateAdminValues(result.listing);
+          loadedAdminValues = readAdminValues();
+          setAdminFormMessage();
+        } catch (error) {
+          if (version === adminRequestVersion) setAdminFormMessage(uiError(error, '房源加载失败，请重试。'));
+        } finally {
+          if (version === adminRequestVersion) { adminBusy = false; updateAdminControls(); }
+        }
+      }
+
+      document.getElementById('adminSearchForm').addEventListener('submit', async event => {
+        event.preventDefault();
+        if (adminBusy) return;
+        const version = ++adminRequestVersion;
+        adminBusy = true;
+        updateAdminControls();
+        uiText(adminSearchMessage, '正在搜索…');
+        try {
+          const query = document.getElementById('adminSearchInput').value.trim();
+          const response = await fetch(`/api/admin/listings?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || '搜索失败，请重试。');
+          if (version !== adminRequestVersion) return;
+          const results = document.getElementById('adminSearchResults');
+          results.replaceChildren();
+          (result.listings || []).forEach(listing => {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'dialog-cancel';
+            button.textContent = [listing.address, listing.building, listing.unit, listing.ownerName, listing.contactPhone, `ID: ${listing.id}`].filter(Boolean).join(' · ');
+            button.addEventListener('click', () => selectAdminListing(listing.id));
+            item.append(button);
+            results.append(item);
+          });
+          uiText(adminSearchMessage, result.total
+            ? `找到 ${result.total} 套房源${result.total > 50 ? '，显示前 50 套，请缩小搜索范围' : '，请选择要编辑的房源'}。`
+            : '没有找到匹配房源，请换个关键词。');
+        } catch (error) {
+          if (version === adminRequestVersion) uiText(adminSearchMessage, uiError(error, '搜索失败，请重试。'));
+        } finally {
+          if (version === adminRequestVersion) { adminBusy = false; updateAdminControls(); }
+        }
+      });
+
+      function setPasswordVisible(visible) {
+        loginPasswordInput.type = visible ? 'text' : 'password';
+        const label = visible ? '隐藏密码' : '显示密码';
+        toggleLoginPasswordButton.setAttribute('aria-pressed', String(visible));
+        uiAttribute(toggleLoginPasswordButton, 'aria-label', label);
+        uiAttribute(toggleLoginPasswordButton, 'title', label);
+      }
+
+      toggleLoginPasswordButton.addEventListener('click', () => {
+        setPasswordVisible(loginPasswordInput.type === 'password');
+      });
+      loginForm.addEventListener('reset', () => setPasswordVisible(false));
+      authButton.addEventListener('click', () => openAuthModal());
+      openListingModalButton.addEventListener('click', openListingModal);
+      openAdminModalButton.addEventListener('click', openAdminModal);
+      propertyInfoButton.addEventListener('click', () => {
+        if (window.location.protocol === 'file:') {
+          window.location.href = `${publicSiteUrl}/#listings`;
+          return;
+        }
+        if (new URL(location.href).searchParams.has('listing')) showResults();
+        document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
+      });
+      closeListingModalButton.addEventListener('click', closeListingModal);
+      document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
+      document.getElementById('closeAdminModal').addEventListener('click', closeAdminModal);
+      listingModal.addEventListener('click', event => {
+        if (event.target === listingModal) closeListingModal();
+      });
+      authModal.addEventListener('click', event => {
+        if (event.target === authModal) closeAuthModal();
+      });
+      adminModal.addEventListener('click', event => {
+        if (event.target === adminModal) closeAdminModal();
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !listingModal.hidden) closeListingModal();
+        else if (event.key === 'Escape' && !authModal.hidden) closeAuthModal();
+        else if (event.key === 'Escape' && !adminModal.hidden) closeAdminModal();
+      });
+
+      [loginUsernameInput, loginPasswordInput].forEach(input => {
+        input.addEventListener('input', () => setLoginMessage());
+      });
+      loginForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (currentUser) return;
+        setLoginMessage();
+        submitLoginButton.disabled = true;
+        uiText(submitLoginButton, '登录中…');
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ username: loginUsernameInput.value.trim(), password: loginPasswordInput.value }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || '登录失败，请稍后重试。');
+          const action = pendingAction;
+          updateAuthUI(result.user);
+          loginForm.reset();
+          closeAuthModal();
+          showToast(`欢迎回来，${result.user.username}`);
+          if (action === 'listing') openListingModal();
+        } catch (error) {
+          setLoginMessage(uiError(error, '登录失败，请稍后重试。'));
+        } finally {
+          submitLoginButton.disabled = false;
+          uiText(submitLoginButton, '登录');
+        }
+      });
+      logoutButton.addEventListener('click', async () => {
+        logoutButton.disabled = true;
+        try {
+          const response = await fetch('/api/auth/logout', { method: 'POST' });
+          if (!response.ok) throw new Error('退出失败，请稍后重试。');
+          updateAuthUI(null);
+          closeAuthModal();
+          showToast('已安全退出登录。');
+        } catch (error) {
+          setLoginMessage(uiError(error, '退出失败，请稍后重试。'));
+        } finally {
+          logoutButton.disabled = false;
+        }
+      });
+
+      adminListingForm.addEventListener('input', event => {
+        if (event.target.setCustomValidity) setValidity(event.target, '');
+        setValidity(document.getElementById('adminFloorLevel'), '');
+        setAdminFormMessage();
+        updateAdminControls();
+      });
+      adminListingForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (adminBusy || (adminMode === 'edit' && !selectedAdminListing)) return;
+        setAdminFormMessage();
+        const floorLevel = document.getElementById('adminFloorLevel');
+        const floorTotal = document.getElementById('adminFloorTotal');
+        const address = document.getElementById('adminPropertyAddress');
+        const values = readAdminValues();
+        const changed = name => adminMode === 'create' || values[name] !== loadedAdminValues?.[name];
+        setValidity(address, !changed('address') || (address.value.trim().length >= 4 && /\d/.test(address.value)) ? '' : '请填写小区名称和具体门牌号。');
+        const owner = document.getElementById('adminOwnerName');
+        setValidity(owner, !changed('ownerName') || owner.value.trim() ? '' : '请输入姓名。');
+        setValidity(floorLevel,
+          !changed('floorLevel') && !changed('floorTotal') ? '' : floorLevel.value && floorTotal.value && Number(floorLevel.value) > Number(floorTotal.value)
+            ? '所在楼层不能大于总楼层。'
+            : (Boolean(floorLevel.value) !== Boolean(floorTotal.value) ? '所在楼层和总楼层需要同时填写。' : '')
+        );
+        if (!adminListingForm.reportValidity()) return;
+
+        const payload = Object.fromEntries(Object.entries(values).filter(([name]) => changed(name)));
+        const editing = adminMode === 'edit';
+        if (editing && !Object.keys(payload).length) { setAdminFormMessage('尚未修改任何字段。'); return; }
+        adminBusy = true;
+        updateAdminControls();
+        try {
+          const response = await fetch(editing ? `/api/admin/listings/${encodeURIComponent(selectedAdminListing.id)}` : '/api/admin/listings', {
+            method: editing ? 'PATCH' : 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || '房源保存失败，请稍后重试。');
+          // A successful create becomes an edit immediately, so a list-refresh
+          // failure can never turn a retry into a second INSERT.
+          selectedAdminListing = result.listing;
+          if (!editing) trackLocalSync(result.listing.id);
+          adminMode = 'edit';
+          populateAdminValues(result.listing);
+          loadedAdminValues = readAdminValues();
+          renderProperties([result.listing, ...propertyRows.filter(row => row.id !== result.listing.id)]);
+          try { await loadProperties(); }
+          catch { setAdminFormMessage('房源已保存，列表刷新失败。输入已保留，可关闭后刷新页面；再次保存不会新增重复房源。'); return; }
+          adminListingForm.reset();
+          adminMode = 'create';
+          selectedAdminListing = null;
+          loadedAdminValues = null;
+          delete adminDrafts.create;
+          delete adminDrafts.edit;
+          closeAdminModal();
+          showToast(editing ? '房源修改已保存，房屋信息列表已更新。' : '房源已录入并更新到房屋信息列表。');
+          document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          setAdminFormMessage(uiError(error, '房源保存失败，请稍后重试。'));
+        } finally {
+          adminBusy = false;
+          updateAdminControls();
+        }
+      });
+      [ownerNameInput, ownerPhoneInput, propertyAddressInput].forEach(input => {
+        input.addEventListener('input', () => {
+          setValidity(input, '');
+          setFormMessage();
+        });
+      });
+      listingForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        setFormMessage();
+        if (!validateListingForm()) return;
+
+        submitListingButton.disabled = true;
+        uiText(submitListingButton, '提交中…');
+        try {
+          const response = await fetch('/api/listings', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              ownerName: ownerNameInput.value.trim(),
+              contactPhone: ownerPhoneInput.value.trim(),
+              address: propertyAddressInput.value.trim(),
+            }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401) updateAuthUI(null);
+          if (!response.ok) throw new Error(result.error || '房源保存失败，请稍后重试。');
+          trackLocalSync(result.listing?.id);
+          // Cloud success is final even if refreshing the list fails. Reset the
+          // submitted form now so retrying a local sync cannot POST a duplicate.
+          listingForm.reset();
+          closeListingModal();
+          showToast('挂牌信息已提交，我们会尽快联系您。');
+          try { await loadProperties(); }
+          catch { showToast('云端已保存；列表刷新失败，请刷新页面。'); }
+          document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          setFormMessage(uiError(error, '房源保存失败，请稍后重试。'));
+        } finally {
+          submitListingButton.disabled = false;
+          uiText(submitListingButton, '提交挂牌');
+        }
+      });
+
+      function matchesPrice(value, option) {
+        if (!option) return true;
+        if (value == null) return false;
+        if (option.includes('300 万以内')) return value < 300;
+        if (option.includes('300–500')) return value >= 300 && value <= 500;
+        return value > 500;
+      }
+      function matchesArea(value, option) {
+        if (!option) return true;
+        if (value == null) return false;
+        if (option.includes('90㎡以内')) return value < 90;
+        if (option.includes('90–120')) return value >= 90 && value <= 120;
+        return value > 120;
+      }
+      function districtFromAddress(address = '') {
+        return address.match(/^(.+?区)/)?.[1] || '';
+      }
+      function layoutLabel(bedrooms) {
+        if (bedrooms >= 4) return '四室及以上';
+        return ['', '一室', '两室', '三室'][bedrooms] || '';
+      }
+      function replaceOptions(select, label, values) {
+        const selected = select.value;
+        select.replaceChildren(localizedOption(label, ''), ...values.map(value => localizedOption(value, value)));
+        if (values.includes(selected)) select.value = selected;
+      }
+      async function readJSON(url) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+        try {
+          const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+          // Keep the deadline active while receiving the response body too.
+          const result = await response.json();
+          return { response, result };
+        } catch (error) {
+          if (controller.signal.aborted) throw new Error('请求超时，请重试。');
+          throw error;
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      async function loadProperties() {
+        if (window.location.protocol === 'file:') return;
+        const { response, result: payload } = await readJSON('/api/listings');
+        if (!response.ok) throw new Error(`房源数据加载失败：${response.status}`);
+        const properties = Array.isArray(payload?.table) ? payload.table : [];
+        renderProperties(properties);
+      }
+      // Navigation stays inside the existing document, so forms and sessions remain alive.
+      // Query links also work on a static host without a route rewrite.
+      const homePage = document.getElementById('homePage');
+      const detailPage = document.getElementById('detailPage');
+      const detailContent = document.getElementById('detailContent');
+      const mapModal = document.getElementById('mapModal');
+      const mapStatus = document.getElementById('mapStatus');
+      const mapResults = document.getElementById('mapResults');
+      const favorites = new Set();
+      let savedListState = null;
+      try {
+        JSON.parse(localStorage.getItem('nexthome.favorites') || '[]').forEach(id => favorites.add(id));
+        savedListState = JSON.parse(sessionStorage.getItem('nexthome.results') || 'null');
+      } catch { /* Browsing still works when storage is unavailable. */ }
+      let listStateRestored = false;
+      let map = null, mapSDK = null, mapConfig = null, sdkPromise = null, mapRun = 0, popup = null, mapLanguage = null;
+      let mapEntries = [], mapMarkers = [], mapView = null, mapFocus = null;
+      const locationCache = new Map();
+      function persistListState() {
+        if (!listStateRestored) return;
+        try { sessionStorage.setItem('nexthome.results', JSON.stringify({ search: searchInput.value, filters: fields.map(field => field.value), sort: document.getElementById('sort').value })); } catch { /* Optional persistence. */ }
+      }
+      function propertyName(property) { return property.listingTitle || property.address || ''; }
+      function imageURLs(property) {
+        const values = [property.images, property.imageUrls, property.photos, property.imageUrl, property.photoUrl, property.coverImage].flat(2);
+        return [...new Set(values.map(value => typeof value === 'string' ? value : value?.url || value?.src).filter(value => {
+          if (!value) return false;
+          try { return ['https:', 'http:'].includes(new URL(value, location.href).protocol); } catch { return false; }
+        }))];
+      }
+      function photo(property, url, className = '') {
+        const image = document.createElement('img');
+        image.src = url; image.alt = propertyName(property); image.className = className;
+        image.addEventListener('error', () => {
+          const missing = document.createElement('span'); missing.className = `photo-empty ${className}`;
+          uiText(missing, '暂无图片'); image.replaceWith(missing);
+        }, { once: true });
+        return image;
+      }
+      function propertyURL(id, fromMap = false) {
+        const url = new URL(location.href);
+        url.searchParams.set('listing', id);
+        if (fromMap) url.searchParams.set('view', 'map'); else url.searchParams.delete('view');
+        url.hash = ''; return url.pathname + url.search;
+      }
+      function linkToProperty(property, fromMap = false) {
+        const link = document.createElement('a'); link.className = 'property-link'; link.href = propertyURL(property.id, fromMap);
+        link.addEventListener('click', event => {
+          if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+          event.preventDefault(); navigate(link.href);
+        });
+        return link;
+      }
+      function updateFavorites() {
+        document.querySelectorAll('#listingGrid .favorite').forEach(button => {
+          const active = favorites.has(button.closest('.listing-card').dataset.id);
+          button.classList.toggle('active', active); button.textContent = active ? '♥' : '♡'; button.setAttribute('aria-pressed', String(active));
+        });
+        const id = new URL(location.href).searchParams.get('listing');
+        const button = document.getElementById('detailFavorite');
+        button.setAttribute('aria-pressed', String(favorites.has(id)));
+        uiText(button, favorites.has(id) ? '已收藏' : '收藏房源');
+      }
+      function toggleFavorite(id) {
+        if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+        try { localStorage.setItem(currentUser ? `nexthome.favorites.${currentUser.id}` : 'nexthome.favorites', JSON.stringify([...favorites])); } catch { /* Optional persistence. */ }
+        document.dispatchEvent(new CustomEvent('nexthome-favorite', { detail: { listingId: id, active: favorites.has(id) } }));
+        updateFavorites();
+      }
+      function rememberMapView() {
+        if (!map) return;
+        const center = map.getCenter();
+        mapView = { center: [center.getLng(), center.getLat()], zoom: map.getZoom(), selected: popup?.propertyId };
+        try { sessionStorage.setItem('nexthome.mapView', JSON.stringify(mapView)); } catch { /* Optional persistence. */ }
+      }
+      try { mapView = JSON.parse(sessionStorage.getItem('nexthome.mapView') || 'null'); } catch { /* Optional persistence. */ }
+      function navigate(url) {
+        persistListState(); rememberMapView();
+        const activeCard = document.activeElement.closest?.('.listing-card');
+        history.replaceState({ ...history.state, nhScroll: window.scrollY, nhFocusId: activeCard?.dataset.id }, '', location.href);
+        history.pushState({ nhParent: location.pathname + location.search }, '', url);
+        renderRoute(true);
+      }
+      function returnRoute() {
+        if (history.state?.nhParent) { history.back(); return; }
+        const url = new URL(location.href); const wasDetail = url.searchParams.has('listing');
+        url.searchParams.delete('listing'); if (!wasDetail) url.searchParams.delete('view');
+        history.replaceState(null, '', url.pathname + url.search); renderRoute(true);
+      }
+      function showResults() {
+        const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.delete('view'); url.hash = '';
+        navigate(url.pathname + url.search);
+      }
+      document.querySelector('nav a[href="#listings"]').addEventListener('click', event => {
+        if (!detailPage.hidden) { event.preventDefault(); showResults(); document.getElementById('listings').scrollIntoView({ behavior: 'smooth' }); }
+      });
+      function renderDetail(id) {
+        detailContent.replaceChildren();
+        document.getElementById('detailFavorite').hidden = true;
+        document.getElementById('retryDetail').hidden = propertiesStatus !== 'error';
+        const heading = document.createElement('h1'); detailContent.append(heading);
+        if (propertiesStatus !== 'ready') { uiText(heading, propertiesStatus === 'error' ? '房源加载失败，请重试。' : '正在加载房源详情…'); return; }
+        const property = propertyRows.find(row => row.id === id);
+        if (!property) { uiText(heading, '房源不存在或已下架。'); return; }
+        heading.textContent = propertyName(property); if (!heading.textContent) uiText(heading, '暂无信息');
+        document.getElementById('detailFavorite').hidden = false; updateFavorites();
+        const address = document.createElement('p'); address.textContent = property.address || ''; if (!property.address) uiText(address, '暂无信息'); detailContent.append(address);
+        const gallery = document.createElement('div'); gallery.className = 'detail-gallery';
+        const images = imageURLs(property);
+        if (images.length) images.forEach(url => gallery.append(photo(property, url, 'detail-photo')));
+        else { gallery.classList.add('photo-empty'); uiText(gallery, '暂无图片'); }
+        detailContent.append(gallery);
+        const facts = document.createElement('dl'); facts.className = 'detail-facts';
+        const add = (label, value) => {
+          const item = document.createElement('div'), term = document.createElement('dt'), description = document.createElement('dd');
+          uiText(term, label);
+          if (value === null || value === undefined || value === '') uiText(description, '暂无信息');
+          else description.textContent = String(value); // Business data is never translated.
+          item.append(term, description); facts.append(item);
+        };
+        const unitValue = (value, zh, en) => value == null ? null : `${value} ${language === 'en' ? en : zh}`;
+        add('标题', property.listingTitle); add('地址', property.address); add('小区', property.community);
+        add('总价', unitValue(property.totalPriceWan, '万元', '×10,000 CNY')); add('面积', unitValue(property.areaSqm, '㎡', 'm²'));
+        add('户型', property.roomType || [property.bedrooms == null ? '' : `${property.bedrooms}室`, property.livingRooms == null ? '' : `${property.livingRooms}厅`, property.bathrooms == null ? '' : `${property.bathrooms}卫`].join(''));
+        add('朝向', property.orientation); add('所在楼层', property.floorLevel); add('总楼层', property.floorTotal);
+        add('装修', property.decoration); add('电梯', property.elevator); add('挂牌时间', property.listedDate);
+        add('楼栋', property.building); add('户号', property.unit);
+        add(property.unitPriceCalculated ? '单价（计算值）' : '单价', unitValue(property.unitPriceWanPerSqm, '万元/㎡', '×10,000 CNY/m²'));
+        add('地铁', property.metro);
+        add('来源', property.source?.platform);
+        add('采集时间', property.source?.scrapedAt);
+        if (property.currentDaysOnMarket != null) add('挂牌时长', unitValue(property.currentDaysOnMarket, '天', 'days'));
+        if (property.isDemo) add('数据说明', language === 'en' ? 'Demo listing' : '演示房源');
+        // Match the public list API's existing contact access; do not call admin endpoints.
+        add('联系人', property.ownerName); add('联系电话', property.contactPhone);
+        detailContent.append(facts);
+        document.dispatchEvent(new CustomEvent('nexthome-detail', { detail: property }));
+      }
+      function mapBackground(inert) {
+        homePage.inert = inert; document.querySelector('.footer').inert = inert;
+        document.querySelectorAll('.site-header nav, .header-actions > button').forEach(element => element.inert = inert);
+      }
+      function renderRoute(focus = false) {
+        const url = new URL(location.href), id = url.searchParams.get('listing');
+        const showMap = !id && url.searchParams.get('view') === 'map';
+        homePage.hidden = Boolean(id); detailPage.hidden = !id;
+        uiText(document.getElementById('backFromDetail'), url.searchParams.get('view') === 'map' ? '返回地图' : '返回列表');
+        if (id) { renderDetail(id); if (focus) { window.scrollTo?.({ top: 0, left: 0, behavior: 'instant' }); document.getElementById('backFromDetail').focus({ preventScroll: true }); } }
+        if (showMap && mapModal.hidden) {
+          mapFocus = document.activeElement; mapModal.hidden = false; document.body.style.overflow = 'hidden'; mapBackground(true);
+          document.getElementById('closeMap').focus(); buildMap();
+        } else if (!showMap && !mapModal.hidden) {
+          rememberMapView(); mapRun++; mapModal.hidden = true; document.body.style.overflow = ''; mapBackground(false);
+          if (focus && !id) (mapFocus?.isConnected ? mapFocus : document.getElementById('openMap')).focus();
+        }
+      }
+      function visibleProperties() {
+        const ids = new Set(cards.filter(card => !card.hidden).map(card => card.dataset.id));
+        return [...document.querySelectorAll('#listingGrid .listing-card')].filter(card => ids.has(card.dataset.id)).map(card => propertyRows.find(row => row.id === card.dataset.id)).filter(Boolean);
+      }
+      async function loadMapSDK() {
+        if (mapSDK) return mapSDK;
+        if (sdkPromise) return sdkPromise;
+        sdkPromise = (async () => {
+          const { response, result } = await readJSON('/api/map/config');
+          if (!response.ok) throw new Error('地图加载失败，请重试。');
+          mapConfig = result;
+          if (!result.ready || !result.key) throw new Error('地图服务尚未配置，请联系管理员。');
+          window._AMapSecurityConfig = { serviceHost: `${location.origin}/_AMapService` };
+          if (!window.AMap) await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            const timer = setTimeout(() => { script.remove(); reject(new Error('地图加载失败，请重试。')); }, 20000);
+            script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(result.key)}&plugin=AMap.Geocoder`;
+            script.onload = () => { clearTimeout(timer); if (window.AMap?.Geocoder) resolve(); else reject(new Error('地图加载失败，请重试。')); };
+            script.onerror = () => { clearTimeout(timer); script.remove(); reject(new Error('地图加载失败，请重试。')); };
+            document.head.append(script);
+          });
+          if (!window.AMap?.Geocoder) throw new Error('地图加载失败，请重试。');
+          mapSDK = window.AMap; return mapSDK;
+        })().finally(() => { sdkPromise = null; });
+        return sdkPromise;
+      }
+      function boundedCallback(start) {
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('地址定位失败，请重试。')), 12000);
+          start((status, result) => { clearTimeout(timer); status === 'complete' ? resolve(result) : reject(new Error('地址定位失败，请重试。')); });
+        });
+      }
+      function validPosition(lng, lat) {
+        return lng !== null && lng !== undefined && lng !== '' && lat !== null && lat !== undefined && lat !== '' && Number.isFinite(Number(lng)) && Number.isFinite(Number(lat)) && Math.abs(Number(lng)) <= 180 && Math.abs(Number(lat)) <= 90 && !(Number(lng) === 0 && Number(lat) === 0);
+      }
+      async function locateProperty(property) {
+        const raw = property.coordinates || property.location?.coordinates || (Array.isArray(property.location) ? property.location : null);
+        const lng = property.longitude ?? property.lng ?? property.location?.lng ?? raw?.[0];
+        const lat = property.latitude ?? property.lat ?? property.location?.lat ?? raw?.[1];
+        const system = String(property.coordinateSystem || property.crs || (property.location?.type === 'Point' ? 'wgs84' : mapConfig.coordinateSystem) || '').toLowerCase();
+        if (validPosition(lng, lat) && ['gcj02', 'gcj-02', 'wgs84', 'wgs-84', 'bd09', 'bd-09'].includes(system)) {
+          let position = [Number(lng), Number(lat)];
+          if (!system.startsWith('gcj')) {
+            const converted = await boundedCallback(done => mapSDK.convertFrom(position, system.startsWith('wgs') ? 'gps' : 'baidu', done));
+            const point = converted.locations?.[0]; if (!point || !validPosition(point.getLng(), point.getLat())) throw new Error('地址定位失败，请重试。');
+            position = [point.getLng(), point.getLat()];
+          }
+          return { position, note: '使用已有坐标。' };
+        }
+        if (!property.address) throw new Error(validPosition(lng, lat) ? '坐标系未知，且地址缺失，无法定位。' : '地址缺失，无法定位。');
+        // Use the original address without rewriting business data or inferring a city.
+        const address = [property.address, property.building].filter(Boolean).join(' ');
+        const city = property.city || mapConfig.city || '';
+        const cacheKey = JSON.stringify([address, city]);
+        if (locationCache.has(cacheKey)) return locationCache.get(cacheKey);
+        const geocoder = new mapSDK.Geocoder({ city });
+        const result = await boundedCallback(done => geocoder.getLocation(address, done));
+        const hits = result.geocodes || [];
+        const hit = hits[0];
+        if (hits.length !== 1 || !hit?.location || !['门牌号', '兴趣点', '道路', '道路交叉口', '小区'].includes(hit.level)) throw new Error('地址定位结果不明确，无法标记。');
+        const position = [hit.location.getLng(), hit.location.getLat()];
+        if (!validPosition(...position)) throw new Error('地址定位失败，请重试。');
+        const located = { position, note: '按原始地址定位，位置仅供参考。' }; locationCache.set(cacheKey, located); return located;
+      }
+      function showPropertyPopup(entry) {
+        popup?.close();
+        const content = document.createElement('div'); content.className = 'map-popup';
+        const close = document.createElement('button'); close.className = 'surface-button map-popup-close'; close.textContent = '×'; uiAttribute(close, 'aria-label', '关闭房源浮窗');
+        close.addEventListener('click', () => { popup?.close(); popup = null; entry.button.focus(); }); content.append(close);
+        const imageLink = linkToProperty(entry.property, true); const url = imageURLs(entry.property)[0];
+        if (url) imageLink.append(photo(entry.property, url));
+        else { const missing = document.createElement('span'); missing.className = 'photo-empty'; uiText(missing, '暂无图片'); imageLink.append(missing); }
+        const heading = document.createElement('h3'), titleLink = linkToProperty(entry.property, true); titleLink.textContent = propertyName(entry.property); if (!titleLink.textContent) uiText(titleLink, '暂无信息'); heading.append(titleLink);
+        const detailsLink = linkToProperty(entry.property, true); detailsLink.classList.add('surface-button'); uiText(detailsLink, '查看详情');
+        content.append(imageLink, heading, detailsLink);
+        popup = new mapSDK.InfoWindow({ isCustom: true, content, offset: new mapSDK.Pixel(0, -24) });
+        popup.propertyId = entry.property.id; popup.open(map, entry.position);
+        map.setCenter(entry.position); close.focus(); rememberMapView();
+      }
+      function mapSummary(located, total) {
+        return language === 'en' ? `${located} of ${total} properties located; ${total - located} unavailable.` : `已定位 ${located} / ${total} 套房源，${total - located} 套无法定位。`;
+      }
+      async function buildMap(force = false) {
+        const run = ++mapRun;
+        const rows = visibleProperties(); mapResults.replaceChildren();
+        mapEntries = []; mapMarkers.forEach(marker => marker.setMap(null)); mapMarkers = []; popup?.close(); popup = null;
+        const addResult = property => {
+          const item = document.createElement('li'), button = document.createElement('button'), note = document.createElement('p');
+          button.className = 'surface-button'; button.textContent = propertyName(property); if (!button.textContent) uiText(button, '暂无信息');
+          item.append(button, note); mapResults.append(item); return { property, button, note };
+        };
+        const results = rows.map(addResult);
+        if (propertiesStatus !== 'ready') { uiText(mapStatus, propertiesStatus === 'error' ? '房源列表加载失败' : '正在加载房源…'); return; }
+        if (!rows.length) { uiText(mapStatus, '没有找到符合条件的房源'); return; }
+        uiText(mapStatus, '地图正在加载…');
+        try {
+          await loadMapSDK(); if (run !== mapRun) return;
+          if (force) locationCache.clear();
+          if (map && mapLanguage !== language) { map.destroy(); map = null; }
+          if (!map) { map = new mapSDK.Map('mapCanvas', { zoom: mapView?.zoom || 11, ...(mapView?.center ? { center: mapView.center } : {}), lang: language === 'en' ? 'en' : 'zh_cn', dragEnable: true, zoomEnable: true, touchZoom: true, keyboardEnable: false }); mapLanguage = language; }
+          uiText(mapStatus, '正在定位房源…');
+          const duplicates = new Map();
+          for (const entry of results) {
+            if (run !== mapRun) return;
+            try {
+              const located = await locateProperty(entry.property); if (run !== mapRun) return;
+              Object.assign(entry, located); uiText(entry.note, located.note);
+              const key = entry.position.join(','); const samePlace = duplicates.get(key) || 0; duplicates.set(key, samePlace + 1);
+              // Screen offsets keep every home selectable without altering any coordinates.
+              const pin = document.createElement('button'); pin.className = 'map-pin'; pin.type = 'button'; pin.textContent = String(mapEntries.length + 1);
+              pin.setAttribute('aria-label', propertyName(entry.property) || translateUI('暂无信息'));
+              const marker = new mapSDK.Marker({ position: entry.position, content: pin, offset: new mapSDK.Pixel((samePlace % 5 - 2) * 38, -Math.floor(samePlace / 5) * 38 - 34) });
+              marker.setMap(map); mapMarkers.push(marker); mapEntries.push(entry);
+              pin.addEventListener('click', () => showPropertyPopup(entry)); entry.button.addEventListener('click', () => showPropertyPopup(entry));
+            } catch (error) {
+              if (run !== mapRun) return;
+              entry.button.disabled = true; uiText(entry.note, uiError(error, '地址定位失败，请重试。'));
+              const link = linkToProperty(entry.property, true); uiText(link, '查看详情'); entry.button.parentElement.append(link);
+            }
+            uiText(mapStatus, () => mapSummary(mapEntries.length, rows.length));
+          }
+          if (!mapEntries.length) uiText(mapStatus, '没有可定位的房源。');
+          else if (mapView) {
+            map.setZoomAndCenter(mapView.zoom, mapView.center);
+            const selected = mapEntries.find(entry => entry.property.id === mapView.selected); if (selected) showPropertyPopup(selected);
+          } else map.setFitView(mapMarkers, false, [60, 60, 60, 60], 16);
+        } catch (error) {
+          if (run !== mapRun) return;
+          uiText(mapStatus, uiError(error, '地图加载失败，请重试。'));
+          results.forEach(entry => { entry.button.disabled = true; uiText(entry.note, '定位失败'); });
+        }
+      }
+      document.getElementById('openMap').addEventListener('click', () => {
+        applyFilters(); const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.set('view', 'map'); url.hash = ''; navigate(url.pathname + url.search);
+      });
+      document.getElementById('closeMap').addEventListener('click', returnRoute);
+      document.getElementById('backFromDetail').addEventListener('click', returnRoute);
+      document.getElementById('detailFavorite').addEventListener('click', () => toggleFavorite(new URL(location.href).searchParams.get('listing')));
+      document.getElementById('retryDetail').addEventListener('click', () => { propertiesStatus = 'loading'; renderRoute(); loadProperties().catch(() => { propertiesStatus = 'error'; renderRoute(); }); });
+      document.getElementById('retryMap').addEventListener('click', async () => {
+        if (propertiesStatus === 'error') { propertiesStatus = 'loading'; try { await loadProperties(); } catch { propertiesStatus = 'error'; } }
+        buildMap(true);
+      });
+      document.getElementById('fitMap').addEventListener('click', () => { if (mapMarkers.length) { map.setFitView(mapMarkers, false, [60, 60, 60, 60], 16); rememberMapView(); } });
+      mapModal.addEventListener('click', event => { if (event.target === mapModal) returnRoute(); });
+      document.getElementById('mapCanvas').addEventListener('keydown', event => {
+        if (!map || event.target !== event.currentTarget) return;
+        const directions = { ArrowLeft: [80, 0], ArrowRight: [-80, 0], ArrowUp: [0, 80], ArrowDown: [0, -80] };
+        if (directions[event.key]) { event.preventDefault(); map.panBy(...directions[event.key]); }
+        else if (['+', '=', '-'].includes(event.key)) { event.preventDefault(); map.setZoom(map.getZoom() + (event.key === '-' ? -1 : 1)); }
+      });
+      document.addEventListener('keydown', event => {
+        if (mapModal.hidden) return;
+        if (event.key === 'Escape') { event.preventDefault(); returnRoute(); }
+        if (event.key !== 'Tab') return;
+        const controls = [...languageSwitch.querySelectorAll('button'), ...mapModal.querySelectorAll('button, a[href], [tabindex="0"]')].filter(element => !element.disabled && !element.closest('[hidden]'));
+        const index = controls.indexOf(document.activeElement);
+        if (event.shiftKey && index <= 0) { event.preventDefault(); controls.at(-1)?.focus(); }
+        else if (!event.shiftKey && (index === controls.length - 1 || index < 0)) { event.preventDefault(); controls[0]?.focus(); }
+      });
+      document.addEventListener('languagechange', () => {
+        if (!detailPage.hidden) renderDetail(new URL(location.href).searchParams.get('listing'));
+        if (map && !mapModal.hidden) {
+          rememberMapView(); map.destroy(); map = null; buildMap();
+        }
+      });
+      window.addEventListener('popstate', () => {
+        renderRoute(true);
+        if (!homePage.hidden && mapModal.hidden) {
+          window.scrollTo?.({ top: history.state?.nhScroll || 0, left: 0, behavior: 'instant' });
+          const card = cards.find(card => card.dataset.id === history.state?.nhFocusId);
+          (card?.querySelector('.card-heading a') || document.getElementById('openMap')).focus({ preventScroll: true });
+        }
+      });
+      renderRoute();
+      function renderProperties(properties) {
+        propertiesStatus = 'ready';
+        propertyRows = properties;
+        const grid = document.getElementById('listingGrid');
+        const template = listingCardTemplate;
+        grid.replaceChildren();
+        properties.forEach((property, index) => {
+          if (!template) return;
+          const card = template.cloneNode(true);
+          bindStaticUI(card);
+          const isSubmittedListing = ['listing_form', 'user_listing', 'admin_manual'].includes(property.submissionSource);
+          card.dataset.id = property.id;
+          card.dataset.search = Object.values(property).filter(value => typeof value === 'string').join(' ').toLowerCase();
+          card.dataset.district = districtFromAddress(property.address);
+          card.dataset.layout = layoutLabel(property.bedrooms);
+          card.dataset.price = property.totalPriceWan ?? '';
+          card.dataset.area = property.areaSqm ?? '';
+          card.dataset.decoration = property.decoration || '';
+          card.dataset.date = property.listedDate || '';
+          card.dataset.days = property.currentDaysOnMarket ?? property.daysOnMarket ?? '';
+          card.querySelector('img').remove();
+          const imageLink = linkToProperty(property);
+          imageLink.className = 'photo-link';
+          const imageURL = imageURLs(property)[0];
+          if (imageURL) imageLink.append(photo(property, imageURL));
+          else { const missing = document.createElement('span'); uiText(missing, '暂无图片'); imageLink.append(missing); }
+          card.querySelector('.card-image').prepend(imageLink);
+          const badges = card.querySelector('.badge-row');
+          badges.replaceChildren();
+          if (property.priceTag) {
+            const priceTag = document.createElement('span');
+            priceTag.className = 'badge new';
+            uiText(priceTag, property.priceTag);
+            badges.appendChild(priceTag);
+          }
+          if (property.floorBand) {
+            const floorBand = document.createElement('span');
+            floorBand.className = 'badge';
+            uiText(floorBand, property.floorBand);
+            badges.appendChild(floorBand);
+          }
+          const titleLink = linkToProperty(property);
+          titleLink.textContent = propertyName(property); if (!titleLink.textContent) uiText(titleLink, '暂无信息');
+          card.querySelector('.card-heading h3').replaceChildren(titleLink);
+          uiText(card.querySelector('.community'), isSubmittedListing
+            ? `联系人：${property.ownerName || ''} · ${property.contactPhone || ''}`
+            : `⌖ ${property.community || ''}${property.communityRefPriceWanPerSqm == null ? '' : ` · 小区参考价 ${property.communityRefPriceWanPerSqm}万/㎡`}`);
+          const facts = card.querySelectorAll('.fact strong');
+          uiText(facts[0], property.totalPriceWan == null ? '' : `${property.totalPriceWan}万`);
+          uiText(facts[1], property.roomType || '');
+          uiText(facts[2], property.areaSqm == null ? '' : `${property.areaSqm}㎡`);
+          const detailList = card.querySelector('.detail-list');
+          const details = detailList.querySelectorAll('dd');
+          uiText(details[0], property.orientation || '');
+          uiText(details[1], property.floorLevel == null || property.floorTotal == null ? '' : `${property.floorLevel}/${property.floorTotal}层`);
+          uiText(details[2], property.decoration || '');
+          const appendDetail = (label, value, businessData = false) => {
+            const item = document.createElement('div');
+            const term = document.createElement('dt');
+            const description = document.createElement('dd');
+            uiText(term, label);
+            if (businessData) description.textContent = value || '';
+            else uiText(description, value || '');
+            item.append(term, description);
+            detailList.appendChild(item);
+          };
+          appendDetail(property.unitPriceCalculated ? '单价（计算值）' : '单价', property.unitPriceWanPerSqm == null ? '' : `${property.unitPriceWanPerSqm}万/㎡`);
+          appendDetail('电梯', property.elevator || '');
+          appendDetail('地铁', property.metro || '');
+          appendDetail('地址', [property.address, property.building, property.unit].filter(Boolean).join(' '), true);
+          if (!isSubmittedListing && (property.ownerName || property.contactPhone)) appendDetail('联系人', [property.ownerName, property.contactPhone].filter(Boolean).join(' · '), true);
+          const listed = card.querySelector('.listed-time');
+          uiText(listed.querySelector('span'), () => isSubmittedListing
+            ? `录入时间：${property.createdAt ? new Date(property.createdAt).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN') : ''}`
+            : `挂牌日期：${property.listedDate || ''}`);
+          uiText(listed.querySelector('strong'), isSubmittedListing
+            ? ''
+            : ((property.currentDaysOnMarket ?? property.daysOnMarket) == null ? '挂牌时长：' : `挂牌时长：${property.currentDaysOnMarket ?? property.daysOnMarket}天`));
+          const favorite = card.querySelector('.favorite');
+          favorite.addEventListener('click', event => {
+            event.preventDefault(); event.stopPropagation(); toggleFavorite(property.id);
+          });
+          grid.appendChild(card);
+        });
+        cards = [...grid.querySelectorAll('.listing-card')];
+        replaceOptions(fields[0], '不限区域', [...new Set(properties.map(property => districtFromAddress(property.address)).filter(Boolean))]);
+        replaceOptions(fields[1], '不限户型', [...new Set(properties.map(property => layoutLabel(property.bedrooms)).filter(Boolean))]);
+        replaceOptions(fields[4], '不限装修', [...new Set(properties.map(property => property.decoration).filter(Boolean))]);
+        if (!listStateRestored) {
+          if (savedListState) {
+            searchInput.value = typeof savedListState.search === 'string' ? savedListState.search : '';
+            fields.forEach((field, index) => { const value = savedListState.filters?.[index]; if ([...field.options].some(option => option.value === value)) field.value = value; });
+            const sort = document.getElementById('sort'); if ([...sort.options].some(option => option.value === savedListState.sort)) sort.value = savedListState.sort;
+          }
+          listStateRestored = true;
+        }
+        resultCount.textContent = String(cards.length);
+        updateFavorites(); sortCards();
+        applyFilters();
+        renderRoute();
+        if (!mapModal.hidden) buildMap();
+      }
+      function applyFilters() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        const hasCriteria = Boolean(keyword || fields.some(field => field.value));
+        let visibleCount = 0;
+        cards.forEach(card => {
+          const visible = (!keyword || card.dataset.search.includes(keyword))
+            && (!fields[0].value || card.dataset.district === fields[0].value)
+            && (!fields[1].value || card.dataset.layout === fields[1].value)
+            && matchesPrice(card.dataset.price === '' ? null : Number(card.dataset.price), fields[2].value)
+            && matchesArea(card.dataset.area === '' ? null : Number(card.dataset.area), fields[3].value)
+            && (!fields[4].value || card.dataset.decoration === fields[4].value);
+          card.hidden = !visible;
+          if (visible) visibleCount += 1;
+        });
+        resultCount.textContent = String(visibleCount);
+        emptyState.classList.toggle('show', propertiesStatus !== 'ready' || visibleCount === 0);
+        const title = propertiesStatus === 'loading' ? '正在加载房源…'
+          : propertiesStatus === 'error' ? '房源列表加载失败'
+          : hasCriteria ? '没有找到符合条件的房源' : '暂无房源';
+        const description = propertiesStatus === 'loading' ? ''
+          : propertiesStatus === 'error' ? '请稍后刷新页面重试。'
+          : hasCriteria ? '换个区域或放宽筛选条件试试。' : '目前没有可显示的房源。';
+        uiText(document.getElementById('emptyStateTitle'), title);
+        uiText(document.getElementById('emptyStateDescription'), description);
+        persistListState();
+      }
+
+      document.getElementById('searchForm').addEventListener('submit', event => { event.preventDefault(); applyFilters(); document.getElementById('listings').scrollIntoView(); });
+      fields.forEach(field => field.addEventListener('change', applyFilters));
+      document.querySelectorAll('[data-keyword]').forEach(button => button.addEventListener('click', () => { searchInput.value = button.dataset.keyword; applyFilters(); document.getElementById('listings').scrollIntoView(); }));
+      document.getElementById('clearFilter').addEventListener('click', () => { fields.forEach(field => field.value = ''); searchInput.value = ''; applyFilters(); });
+      document.querySelectorAll('.favorite').forEach(button => button.addEventListener('click', () => { button.classList.toggle('active'); button.textContent = button.classList.contains('active') ? '♥' : '♡'; button.setAttribute('aria-pressed', button.classList.contains('active')); }));
+      loadSession();
+      document.getElementById('listingGrid').replaceChildren();
+      cards = [];
+      uiText(document.getElementById('emptyStateTitle'), '正在加载房源…');
+      uiText(document.getElementById('emptyStateDescription'), '');
+      emptyState.classList.add('show');
+      resultCount.textContent = '0';
+      loadProperties().catch(error => {
+        console.error(error);
+        propertiesStatus = 'error';
+        applyFilters();
+        renderRoute(); if (!mapModal.hidden) buildMap();
+      });
+      function sortCards() {
+        const mode = document.getElementById('sort').value;
+        const grid = document.getElementById('listingGrid');
+        [...cards].sort((a, b) => {
+          if (mode.includes('低到高')) return Number(a.dataset.price) - Number(b.dataset.price);
+          if (mode.includes('大到小')) return Number(b.dataset.area) - Number(a.dataset.area);
+          if (mode.includes('时长从短到长')) return Number(a.dataset.days) - Number(b.dataset.days);
+          return cards.indexOf(a) - cards.indexOf(b);
+        }).forEach(card => grid.appendChild(card));
+        persistListState();
+      }
+      document.getElementById('sort').addEventListener('change', sortCards);
+      // Shared integration surface: existing list/map/admin flows keep ownership of their UI.
+      window.Nexthome = {
+        getUser: () => currentUser, getListings: () => propertyRows, getLanguage: () => language, setLanguage,
+        login: openAuthModal, closeLogin: closeAuthModal, refreshSession: loadSession,
+        openProperty: id => navigate(propertyURL(id)),
+        setFavorites: ids => { favorites.clear(); ids.forEach(id => favorites.add(id)); updateFavorites(); },
+        favorites: () => [...favorites], toast: showToast,
+      };
+    </script>
+    <script src="/assets/advisor.js" defer></script>
+  </body>
+</html>
