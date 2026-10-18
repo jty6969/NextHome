@@ -1,3 +1,4 @@
+import { sellingAI, sellingState, patchSelling, assistantDraft } from './selling.js';
 // Buyer and seller collaboration: no client-writable transaction snapshots.
 const now = () => new Date().toISOString();
 export const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
@@ -124,10 +125,12 @@ async function ai(request, env, user, deps, payload) {
   if (['endpoint', 'apiKey', 'messages', 'model'].some(key => key in payload)) fail('CLIENT_AI_CONFIG_FORBIDDEN');
   const input = text(payload.message, 4000); if (!input) fail('EMPTY_MESSAGE');
   const language = payload.language === 'en' ? 'en' : 'zh';
+  if (payload.mode != null && !['buy', 'sell', 'analysis'].includes(payload.mode)) fail('INVALID_MODE');
   if (!env.DEEPSEEK_API_KEY) fail('AI_NOT_CONFIGURED', 503);
   const count = await stmt(env, "SELECT COUNT(*) AS n FROM buyer_events WHERE account_id = ? AND kind = 'ai_request' AND created_at > ?", user.id, new Date(Date.now() - 60000).toISOString()).first();
   if (count.n >= 10) fail('AI_RATE_LIMIT', 429);
   await event(env, user, 'ai_request', '');
+  if (payload.mode === 'sell') return deps.json(await sellingAI(env, user, payload, input, language));
   let data = await profile(env, user);
   if (payload.mode !== 'analysis') {
     const extracted = extractRequirements(input);
@@ -149,7 +152,7 @@ async function ai(request, env, user, deps, payload) {
     JSON.stringify({ buyer: data, consultation: gate, memory: events, listings: chosen.map(p => ({ id: p.id, name: p.listingTitle || p.address, price: p.totalPriceWan, area: p.areaSqm, unitPrice: p.unitPriceWanPerSqm, bedrooms: p.bedrooms, elevator: p.elevator, floor: [p.floorLevel, p.floorTotal], metro: p.metro, source: p.source, isDemo: p.isDemo, highlights: p.highlights, compromise: p.compromise, surrounding: p.surrounding, community: p.communityInfo, priceHistory: p.priceHistory, priceHistorySynthetic:p.priceHistorySynthetic, sourceListingDate:p.sourceListingDate, daysOnMarket:p.currentDaysOnMarket })) }),
   ].join('\n');
   let response;
-  try { response = await fetch('https://api.deepseek.com/chat/completions', { method: 'POST', signal: AbortSignal.timeout(30000), headers: { 'content-type': 'application/json', authorization: `Bearer ${env.DEEPSEEK_API_KEY}` }, body: JSON.stringify({ model: env.DEEPSEEK_MODEL || 'deepseek-chat', messages: [{ role: 'system', content: prompt }, ...history, { role: 'user', content: input }], temperature: 0.4 }) }); }
+  try { response = await fetch('https://api.deepseek.com/chat/completions', { method: 'POST', signal: AbortSignal.timeout(30000), headers: { 'content-type': 'application/json', authorization: `Bearer ${env.DEEPSEEK_API_KEY}` }, body: JSON.stringify({ model: env.DEEPSEEK_MODEL || 'deepseek-flash', messages: [{ role: 'system', content: prompt }, ...history, { role: 'user', content: input }], temperature: 0.4 }) }); }
   catch { fail('AI_UNAVAILABLE', 503); }
   if (response.status === 402) fail('AI_BALANCE_REQUIRED', 503);
   if (response.status === 401) fail('AI_CREDENTIAL_INVALID', 503);
@@ -168,6 +171,13 @@ export async function handleAdvisor(request, env, user, deps) {
   try {
     if ((route === '/api/ai' || route === '/api/advisor/ai') && method === 'POST') return await ai(request, env, user, deps, await body(request));
     if (route === '/api/advisor/state' && method === 'GET') return deps.json(await state(env, user));
+    if (route === '/api/advisor/selling' && method === 'GET') return deps.json(await sellingState(env, user));
+    if (route === '/api/advisor/selling' && method === 'PATCH') return deps.json(await patchSelling(env, user, await body(request)));
+    if (route === '/api/advisor/draft' && ['GET', 'PUT'].includes(method)) {
+      const payload = method === 'PUT' ? await body(request) : {};
+      if (method === 'PUT' && typeof payload.draft !== 'string') fail('INVALID_INPUT');
+      return deps.json(await assistantDraft(env, user, url.searchParams.get('mode'), method === 'PUT' ? payload.draft : undefined));
+    }
     if (route === '/api/advisor/profile' && method === 'PATCH') {
       const data = await body(request), p = cleanFields(data.profile || {}, profileFields), r = cleanFields(data.requirements || {}, requirementFields);
       if (Object.keys(data).some(k => !['profile', 'requirements'].includes(k))) fail('INVALID_PROFILE');

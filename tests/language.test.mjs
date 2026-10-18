@@ -63,7 +63,7 @@ test('default, persisted and invalid preferences initialize safely; language nam
       assert.deepEqual([...p.document.querySelectorAll('[data-language]')].map(node => node.textContent), ['简体中文', 'English']);
       p.choose('en');
       assert.equal(p.dom.window.localStorage.getItem('nexthome.language'), 'en');
-      assert.equal(p.document.title, 'Nexthome | Property Library');
+      assert.equal(p.document.title, 'NextHome | AI Home Advisor');
       p.choose('zh-CN');
       assert.equal(p.get('propertyInfoButton').textContent, '房屋信息');
       assert.equal(p.dom.window.localStorage.getItem('nexthome.language'), 'zh-CN');
@@ -335,7 +335,7 @@ test('English interface contains no untranslated authored Chinese copy or attrib
     const untranslated = [];
     while (walker.nextNode()) {
       const node = walker.currentNode;
-      if (node.parentElement.closest('script, style, [data-language]')) continue;
+      if (node.parentElement.closest('script, style, [data-language], [data-language-label]')) continue;
       if (/[\u4e00-\u9fff]/.test(node.textContent)) untranslated.push(node.textContent.trim());
     }
     for (const element of p.document.querySelectorAll('[placeholder], [aria-label], [title]')) {

@@ -147,6 +147,7 @@ test('AI fixes upstream and context, rejects client secrets, avoids duplicate us
   const result = await c.call('/api/advisor/ai', {message:'test question'}, c.buyer.cookie);
   assert.equal(result.status, 200); assert.doesNotMatch(result.data.content, /lshy-1/);
   assert.equal(captured.url, 'https://api.deepseek.com/chat/completions');
+  assert.equal(captured.payload.model, 'deepseek-flash');
   assert.equal(captured.payload.messages.filter(m=>m.content==='test question').length, 1);
   t.mock.method(globalThis,'fetch',async()=>new Response('{}',{status:402}));
   assert.equal((await c.call('/api/advisor/ai',{message:'余额检查'},c.buyer.cookie)).data.error,'AI_BALANCE_REQUIRED');

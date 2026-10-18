@@ -43,6 +43,13 @@
       "when": 1790946781065,
       "tag": "0005_volatile_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792319735354,
+      "tag": "0006_dry_leper_queen",
+      "breakpoints": true
     }
   ]
 }

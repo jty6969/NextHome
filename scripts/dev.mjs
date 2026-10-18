@@ -4,9 +4,11 @@ import path from 'node:path';
 import worker from '../worker/app.js';
 import { openDatabase, d1, root } from './local-db.mjs';
 import { migrateVictor } from './migrate-victor.mjs';
-const db = await openDatabase(path.join(root, process.argv.includes('--isolated') ? `.local/check-${Date.now()}.sqlite` : '.local/nexthome.sqlite'));
+const db = await openDatabase(process.env.NEXTHOME_DB_PATH || path.join(root, process.argv.includes('--isolated') ? `.local/check-${Date.now()}.sqlite` : '.local/nexthome.sqlite'));
+const localAIKey = process.env.DEEPSEEK_API_KEY?.trim() || await readFile(path.join(root, '.local/deepseek-api-key.txt'), 'utf8')
+  .then(value => value.trim()).catch(error => { if (error.code === 'ENOENT') return ''; throw error; });
 const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.png':'image/png' };
-const env = { DB:d1(db), DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY || '', ASSETS:{
+const env = { DB:d1(db), DEEPSEEK_API_KEY:localAIKey, DEEPSEEK_MODEL:process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash', ASSETS:{
   async fetch(request) {
     let relative = new URL(request.url).pathname;
     if (relative === '/') relative = '/index.html';
