@@ -19,75 +19,110 @@
   let recognition = null, selected = 'new';
   let panelFocus = null, panelType = null, panelRevision = 0, historyRows = [], historyLoading = false, historyError = null;
   let homeOwner = site.getUser()?.id || null;
-  let mode = 'buy', ownerRevision = 0;
-  const freshMode = () => ({messages: [], draft: '', pending: false, notice: null, version: 0, draftVersion: 0, loaded: false, loading: null});
-  let modes = {buy: freshMode(), sell: freshMode()}, sellerData = null;
+  let mode = 'buy', ownerRevision = 0, propertySwitch = false;
+  const freshMode = () => ({messages: [], draft: '', request: null, pending: false, notice: null, version: 0, draftVersion: 0, loaded: false, loading: null});
+  let modes = {buy: freshMode(), sell: freshMode()}, sellerData = null, sellerProperty = 'primary';
+  function restoreProperty(){try{const id=localStorage.getItem('nexthome.selling.'+homeOwner);if(/^[\w-]{1,80}$/.test(id||''))sellerProperty=id;}catch{}}
+  restoreProperty();
   const active = () => modes[mode];
   const draftTimers = new Map(), draftQueues = new Map();
+  const requestKey = (owner, property) => `nexthome.send.${owner}:sell:${property}`;
+  function readSendRequest(owner, property) {
+    try {const value=JSON.parse(localStorage.getItem(requestKey(owner,property)));return /^[\w-]{1,80}$/.test(value?.requestId||'')&&typeof value.message==='string'?value:null;} catch {return null;}
+  }
+  function forgetSendRequest(owner, property, requestId) {
+    try {if(!requestId||readSendRequest(owner,property)?.requestId===requestId)localStorage.removeItem(requestKey(owner,property));}catch{}
+  }
+  function sellerRequest(target, message, owner, property) {
+    const previous=target.request||readSendRequest(owner,property);
+    const value=previous?.message===message?previous:{requestId:crypto.randomUUID(),message};
+    target.request=value;try{localStorage.setItem(requestKey(owner,property),JSON.stringify(value));}catch{}
+    return value.requestId;
+  }
 
   function persistDraft(targetMode = mode) {
     if (!site.getUser()) return;
     if (!modes[targetMode].loaded && !modes[targetMode].draftVersion) return;
     const owner = site.getUser().id, revision = ownerRevision, value = modes[targetMode].draft;
-    const key = `${owner}:${targetMode}`;
+    const property=targetMode==='sell'?sellerProperty:'primary';
+    const key = `${owner}:${targetMode}:${property}`;
     clearTimeout(draftTimers.get(key));
     // Serialize writes per account/mode so older drafts never arrive last.
     const write = (draftQueues.get(key) || Promise.resolve()).catch(() => {}).then(async () => {
       if (ownerRevision !== revision || site.getUser()?.id !== owner) return;
-      await advisor.saveDraft(targetMode, value);
+      await advisor.saveDraft(targetMode, value, property);
     });
     draftQueues.set(key, write);
-    write.catch(() => { if (ownerRevision === revision && mode === targetMode) setNotice('草稿暂未同步，请保留此页面后重试。', 'Draft has not synced. Keep this page open and retry.', 'error'); });
+    write.catch(() => { if (ownerRevision === revision && mode === targetMode && !active().pending && active().notice?.[2]!=='error') setNotice('草稿暂未同步，请保留此页面后重试。', 'Draft has not synced. Keep this page open and retry.', 'error'); });
     return write;
   }
   function rememberInput() {
     active().draft = input.value; active().draftVersion++;
     if (!homeOwner) return;
-    const key = `${homeOwner}:${mode}`, targetMode = mode;
+    if(mode==='sell'&&(active().request||readSendRequest(homeOwner,sellerProperty))?.message!==input.value.trim()){
+      active().request=null;forgetSendRequest(homeOwner,sellerProperty);
+    }
+    const key = `${homeOwner}:${mode}:${mode==='sell'?sellerProperty:'primary'}`, targetMode = mode;
     clearTimeout(draftTimers.get(key)); draftTimers.set(key, setTimeout(() => persistDraft(targetMode), 350));
   }
+  async function selectSellerProperty(id) {
+    if(modes.sell.pending||propertySwitch)return;
+    propertySwitch=true;updateComposer();
+    const generation=ownerRevision;
+    if(mode==='sell'){modes.sell.draft=input.value;try{await persistDraft('sell');}catch{propertySwitch=false;updateComposer();return;}}
+    if(generation!==ownerRevision||mode!=='sell'){propertySwitch=false;updateComposer();return;}
+    window.NexthomeSelling.hide(true);sellerProperty=id;sellerData=null;modes.sell=freshMode();
+    try{localStorage.setItem('nexthome.selling.'+homeOwner,id);}catch{}
+    input.value='';renderConversation();renderSeller();try{await loadMode('sell');}finally{propertySwitch=false;updateComposer();renderSeller();}
+  }
   function renderSeller() {
-    const container = get('sellerProfile'); container.hidden = mode !== 'sell';
-    if (mode !== 'sell' || !window.NexthomeSelling) return;
-    window.NexthomeSelling.render(container, sellerData, {
-      login: () => site.login(), buy: () => switchMode('buy'), retry: () => loadMode('sell', true),
-      save: async (key, value, revision) => {
-        const owner = homeOwner, generation = ownerRevision;
-        try {
-          const data = await advisor.saveSelling({propertyId:'primary', fields:{[key]:value}, revision});
-          if (owner !== homeOwner || generation !== ownerRevision) return;
-          sellerData = data;
-          // Drop only the saved editor; unrelated unfinished edits remain intact.
-          const editor = container.querySelector(`[data-seller-field="${key}"]`);
-          editor?.removeAttribute('data-seller-field'); editor?.closest('[data-editing]')?.removeAttribute('data-editing');
-          if (mode === 'sell') { renderSeller(); setNotice('卖房需求已保存。', 'Seller brief saved.'); }
-        } catch (error) {
-          if (owner === homeOwner && generation === ownerRevision) {
-            if (mode === 'sell') setNotice(...(error.copy || [error.message,error.message]), 'error');
-            // Refresh revision without discarding unsaved editor values.
-            try {const latest=await advisor.getSelling();if(generation===ownerRevision){sellerData=latest;if(mode==='sell')renderSeller();}} catch {}
-          }
+    const container=get('sellerProfile');container.hidden=mode!=='sell';
+    if(mode!=='sell'||!window.NexthomeSelling)return;
+    const generation=ownerRevision,owner=homeOwner,property=sellerProperty;
+    const current=()=>generation===ownerRevision&&owner===homeOwner&&property===sellerProperty;
+    window.NexthomeSelling.render(container,sellerData,{
+      pending:modes.sell.pending||propertySwitch, buy:()=>switchMode('buy'), select:selectSellerProperty,
+      review:async()=>{const latest=await advisor.reviewSelling(property);if(current()&&latest.revision>=sellerData.revision){sellerData=latest;if(mode==='sell')renderSeller();}},
+      confirm:async(fields,revision)=>{
+        try{
+          const changed=Object.fromEntries(Object.entries(fields).filter(([key,value])=>sellerData.fields[key]!==value||Object.hasOwn(sellerData.pending||{},key)));
+          let latest=sellerData;
+          if(Object.keys(changed).length)latest=await advisor.saveSelling({propertyId:property,fields:changed,revision});
+          if(!current())throw Error(tr('账号或房屋已切换。','Account or property changed.'));
+          sellerData=latest;
+          const saved=await advisor.confirmSelling({propertyId:property,revision:latest.revision,confirm:true});
+          if(!current())throw Error(tr('账号或房屋已切换。','Account or property changed.'));
+          sellerData=saved;
+          if(mode==='sell')setNotice('私密房源草稿已保存，尚未公开发布。','Private listing draft saved. It has not been published.');
+          return saved;
+        }catch(error){
+          if(current())try{const latest=await advisor.getSelling(property);if(current()){sellerData=latest;if(mode==='sell')renderSeller();}}catch{}
           throw error;
         }
+      },
+      publish:()=>{
+        // Reuse the existing explicit public submission. Never copy a private door number.
+        get('openListingModal').click();
+        const address=get('propertyAddress');if(address)address.value=[sellerData.fields.city,sellerData.fields.district,sellerData.fields.community].filter(Boolean).join(' ');
       },
     });
   }
   async function loadMode(targetMode, force = false) {
     if (!homeOwner) { renderSeller(); return; }
-    const target = modes[targetMode], generation = ownerRevision, version = target.version;
+    const target = modes[targetMode], generation = ownerRevision, version = target.version, property=sellerProperty;
     if (target.loading) return target.loading;
     if (target.loaded && !force) return;
     target.loading = (async () => {
       try {
-        const [data, draft] = await Promise.all([targetMode === 'sell' ? advisor.getSelling() : advisor.getHistory(), advisor.getDraft(targetMode)]);
-        if (generation !== ownerRevision) return;
-        if (targetMode === 'sell') sellerData = data;
+        const [data, draft] = await Promise.all([targetMode === 'sell' ? advisor.getSelling(property) : advisor.getHistory(), advisor.getDraft(targetMode,targetMode==='sell'?property:'primary')]);
+        if (generation !== ownerRevision || (targetMode==='sell'&&property!==sellerProperty)) return;
+        if (targetMode === 'sell' && (!sellerData || data.revision>=sellerData.revision)) sellerData = data;
         if (version === target.version && !target.pending) {
           target.messages = targetMode === 'sell' ? data.chatHistory : data;
         }
         if (!target.draftVersion) target.draft = draft.draft || '';
         target.loaded = true;
-        if (mode === targetMode) {input.value=target.draft;renderConversation();renderSeller();updateComposer();}
+        if (mode === targetMode) {input.value=target.draft;renderConversation({animateLayout:false});renderSeller();updateComposer();}
       } catch (error) {
         if (generation === ownerRevision && mode === targetMode) setNotice('历史或草稿加载失败，可切换回来重试。', 'History or draft could not load. Switch back to retry.', 'error');
       } finally { target.loading = null; }
@@ -103,12 +138,13 @@
     input.placeholder = selling ? tr('描述你想出售的房子，或告诉我你的卖房计划','Describe the home you want to sell, or your selling plans') : tr('询问购房助手','Ask your home advisor');
     input.setAttribute('aria-label',input.placeholder);form.setAttribute('aria-label',input.placeholder);
     document.querySelector('.home-hint').textContent = selling ? tr('先聊聊房子和出售目标，每次只补充一两项','Start with your home and sale goals. One or two details at a time.') : tr('描述预算、区域或通勤需求，让找房更有方向','Share your budget, location or commute to guide your search');
-    document.querySelector('[data-home-action="profile"]').textContent = selling ? tr('编辑卖房需求','Edit seller brief') : tr('编辑购房需求','Edit buyer brief');
+    const profileAction=document.querySelector('[data-home-action="profile"]');profileAction.hidden=selling;profileAction.textContent=tr('编辑购房需求','Edit buyer brief');
   }
   function switchMode(next) {
     if (next === mode) return;
     active().draft=input.value; persistDraft(); stopSpeech(); closeMenu(quickMenu,plus);
     mode=next;
+    if(mode!=='sell')window.NexthomeSelling.hide(true);
     get('assistantMode').dataset.mode=mode;
     get('assistantMode').querySelectorAll('[role="tab"]').forEach(button=>{const selected=button.dataset.mode===mode;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
     get('assistantContent').setAttribute('aria-labelledby',`${mode}Mode`);
@@ -162,19 +198,20 @@
     status.dataset.kind = kind;
   }
   function updateComposer() {
+    const pending=active().pending||(mode==='sell'&&propertySwitch);
     const filled = Boolean(input.value.trim());
-    send.hidden = !filled && !active().pending;
-    send.disabled = active().pending;
+    send.hidden = !filled && !pending;
+    send.disabled = pending;
     voice.hidden = filled && !recognition;
-    input.readOnly = active().pending;
-    plus.disabled = active().pending; voice.disabled = active().pending;
-    form.setAttribute('aria-busy', String(active().pending));
-    send.setAttribute('aria-label', active().pending ? tr('发送中', 'Sending') : tr('发送', 'Send'));
+    input.readOnly = pending;
+    plus.disabled = pending; voice.disabled = pending;
+    form.setAttribute('aria-busy', String(pending));
+    send.setAttribute('aria-label', pending ? tr('发送中', 'Sending') : tr('发送', 'Send'));
     voice.setAttribute('aria-pressed', String(Boolean(recognition)));
     voice.setAttribute('aria-label', recognition ? tr('停止录音', 'Stop recording') : tr('语音输入', 'Voice input'));
     input.style.height = '28px';
     input.style.height = `${Math.min(160, Math.max(28, input.scrollHeight))}px`;
-    document.querySelector('[data-home-action="new"]').disabled = active().pending;
+    document.querySelector('[data-home-action="new"]').disabled = pending;
   }
   function setSelected(action) {
     selected = action;
@@ -193,6 +230,14 @@
       const bubble = el('article', null, 'home-message'); bubble.dataset.role = message.role;
       bubble.append(el('span', message.role === 'user' ? tr('你', 'You') : 'NextHome', 'message-label'));
       bubble.append(el('p', message.content));
+      if(message.delivery==='pending')bubble.append(el('span',tr('发送中…','Sending…'),'message-delivery'));
+      if(message.delivery==='failed'){
+        bubble.append(el('span',tr('发送未完成，内容已保留。','Send did not complete. Your message is kept.'),'message-delivery message-failed'));
+        const retry=actionButton('重试发送','Retry send',()=>{
+          if(active().pending)return;
+          input.value=message.content;rememberInput();form.requestSubmit();
+        });retry.disabled=active().pending;bubble.append(retry);
+      }
       for (const id of new Set([...message.content.matchAll(/\[([\w-]+)\]/g)].map(match => match[1]))) {
         const property = site.getListings().find(row => row.id === id);
         if (!property) continue;
@@ -203,10 +248,20 @@
       container.append(bubble);
     }
   }
-  function renderConversation() {
+  function renderConversation({animateLayout = true} = {}) {
+    const page = get('assistantPage'), chatting = active().messages.length > 0;
+    // Keep one tablist in the document so moving it never loses keyboard focus.
+    if (!animateLayout) page.classList.add('layout-snap');
+    page.classList.toggle('has-conversation', chatting);
     renderMessages(messages, active().messages);
-    messages.hidden = active().messages.length === 0;
-    welcome.hidden = active().messages.length > 0;
+    messages.hidden = !chatting;
+    welcome.inert = chatting;
+    welcome.setAttribute('aria-hidden', String(chatting));
+    document.querySelector('.home-hint').setAttribute('aria-hidden', String(chatting));
+    if (!animateLayout) {
+      void page.offsetHeight;
+      page.classList.remove('layout-snap');
+    }
     messages.scrollTop = messages.scrollHeight;
   }
   function closeMenu(menu, opener, focus = false) {
@@ -277,7 +332,7 @@
       else {
         panelBody.append(actionButton('继续对话', 'Continue conversation', () => {
           active().messages = historyRows.map(row => ({ ...row })); closePanel(); site.showHome();
-          renderConversation(); input.focus();
+          renderConversation({animateLayout:false}); input.focus({preventScroll:true});
         }));
         const history = el('div'); renderMessages(history, historyRows); panelBody.append(history);
       }
@@ -290,7 +345,7 @@
       }
       const actions = el('div', null, 'settings-actions');
       actions.append(actionButton('账号与安全', 'Account & security', () => { closePanel(); site.login(); }),
-        actionButton(mode==='sell'?'编辑卖房需求':'编辑购房需求', mode==='sell'?'Edit seller brief':'Edit buyer brief', () => { closePanel(); if(mode==='buy')advisor.show('profile');else{get('sellerProfile').querySelector('details').open=true;} }),
+        ...(mode==='buy'?[actionButton('编辑购房需求','Edit buyer brief',()=>{closePanel();advisor.show('profile');})]:[]),
         actionButton('购房与交易工作台', 'Home buying workspace', () => { closePanel(); advisor.show(site.getUser()?.role === 'seller' ? 'seller' : 'chat'); }));
       panelBody.append(languages, actions);
     }
@@ -303,7 +358,7 @@
     setSelected(type); renderPanel(); panelClose.focus();
     if (type === 'history' && site.getUser()) {
       try {
-        const rows = mode === 'sell' ? (await advisor.getSelling()).chatHistory : await advisor.getHistory();
+        const rows = mode === 'sell' ? (await advisor.getSelling(sellerProperty)).chatHistory : await advisor.getHistory();
         if (revision !== panelRevision) return;
         historyLoading = false; historyRows = rows; renderPanel();
       } catch (error) {
@@ -323,13 +378,13 @@
     if (window.innerWidth <= 680) setExpanded(false);
     if (action === 'new') {
       if (active().pending) return;
-      active().version++;active().draftVersion++; active().messages = []; active().draft=''; input.value = ''; persistDraft(); setNotice(); site.showHome(); renderConversation(); updateComposer(); input.focus();
+      active().version++;active().draftVersion++; active().messages = []; active().draft=''; input.value = ''; persistDraft(); setNotice(); site.showHome(); renderConversation(); updateComposer(); input.focus({preventScroll:true});
     } else if (action === 'list') site.showResults();
     else if (action === 'map') get('openMap').click();
     else if (action === 'history' || action === 'settings') await showPanel(action);
     else if (action === 'listing') get('openListingModal').click();
     else if (action === 'profile' && mode === 'sell') {
-      const details=get('sellerProfile').querySelector('details');if(details){details.open=true;details.querySelector('summary').focus();details.scrollIntoView({block:'nearest'});}
+      window.NexthomeSelling.open();
     } else {
       if (action === 'viewings') setSelected('viewings');
       await advisor.show(action === 'viewings' ? 'viewings' : action === 'profile' ? 'profile' : site.getUser()?.role === 'seller' ? 'seller' : 'chat');
@@ -342,23 +397,33 @@
   });
   form.addEventListener('submit', async event => {
     event.preventDefault(); const message = input.value.trim();
-    if (!message || active().pending) return;
+    if (!message || active().pending || (mode==='sell'&&propertySwitch)) return;
     if (!site.getUser()) { site.login(); return; }
-    stopSpeech(); const owner = site.getUser().id, generation=ownerRevision, targetMode=mode, target=active();
-    target.version++;target.draftVersion++; target.draft=message; target.pending = true; persistDraft(); updateComposer(); setNotice('正在分析你的需求…', 'Analyzing your requirements…');
+    stopSpeech(); const owner = site.getUser().id, generation=ownerRevision, targetMode=mode, target=active(), property=sellerProperty;
+    const requestId=targetMode==='sell'?sellerRequest(target,message,owner,property):undefined;
+    let userMessage=target.messages.at(-1);
+    if(userMessage?.role!=='user'||userMessage.delivery!=='failed'||userMessage.content!==message){userMessage={role:'user',content:message};target.messages.push(userMessage);}
+    userMessage.delivery='pending';
+    target.version++;target.draftVersion++; target.draft=message; target.pending = true; persistDraft(); updateComposer();renderConversation();renderSeller(); setNotice('正在分析你的需求…', 'Analyzing your requirements…');
     try {
-      const result = await advisor.sendMessage(message,targetMode);
+      const result = await advisor.sendMessage(message,targetMode,property,requestId);
       if (site.getUser()?.id !== owner || generation!==ownerRevision) return;
-      target.messages.push({ role: 'user', content: message }, { role: 'assistant', content: result.content });
-      target.draft=''; target.notice=result.saved?['卖房需求已保存。','Seller brief saved.','info']:null;persistDraft(targetMode);
+      userMessage.delivery='sent';
+      if(targetMode==='sell'&&result.replayed&&Array.isArray(result.chatHistory))target.messages=result.chatHistory;
+      else target.messages.push({ role: 'assistant', content: result.content });
+      target.draft=''; target.request=null;target.notice=result.saved?['私密挂牌草稿已同步。','Private listing draft synced.','info']:null;
+      const cleared=persistDraft(targetMode);
+      // Keep the send ID until the empty draft is durable, including a reload after a lost response.
+      if(targetMode==='sell')cleared?.then(()=>forgetSendRequest(owner,property,requestId)).catch(()=>{});
       if(targetMode==='sell')sellerData=result;
       if(mode===targetMode){input.value='';renderConversation();renderSeller();setNotice(...(target.notice||[]));}
     } catch (error) {
       if (site.getUser()?.id === owner && generation===ownerRevision) {
+        userMessage.delivery='failed';
         target.notice=[...(error.copy || [error.message,error.message]),'error'];
-        if(mode===targetMode)setNotice(...target.notice);
+        if(mode===targetMode){renderConversation();setNotice(...target.notice);}
       }
-    } finally { target.pending = false; if(generation===ownerRevision&&mode===targetMode)updateComposer(); }
+    } finally { target.pending = false; if(generation===ownerRevision&&mode===targetMode){updateComposer();renderConversation();renderSeller();} }
   });
   voice.addEventListener('click', () => {
     if (recognition) { stopSpeech(); setNotice(); return; }
@@ -392,9 +457,9 @@
   document.addEventListener('nexthome-auth', () => {
     stopSpeech(); closeMenu(accountMenu, accountButton);
     const guestDraft=!homeOwner?input.value:'';
-    ownerRevision++; draftTimers.forEach(clearTimeout);draftTimers.clear();draftQueues.clear();
-    modes={buy:freshMode(),sell:freshMode()};sellerData=null;get('sellerProfile').replaceChildren();
-    homeOwner = site.getUser()?.id || null; input.value=guestDraft;active().draft=guestDraft;
+    ownerRevision++;propertySwitch=false; draftTimers.forEach(clearTimeout);draftTimers.clear();draftQueues.clear();
+    window.NexthomeSelling.reset();modes={buy:freshMode(),sell:freshMode()};sellerData=null;sellerProperty='primary';get('sellerProfile').replaceChildren();
+    homeOwner = site.getUser()?.id || null;restoreProperty(); input.value=guestDraft;active().draft=guestDraft;
     if(guestDraft){active().draftVersion++;persistDraft();}setNotice();
     if (!panelOverlay.hidden) closePanel(); localize();loadMode(mode);
   });

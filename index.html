@@ -662,11 +662,15 @@
           </div>
           <div id="assistantContent" role="tabpanel" aria-labelledby="buyMode">
           <div class="welcome" id="homeWelcome">
+            <div class="welcome-inner">
             <svg class="home-symbol line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="m6 23 15-12 15 12v19H25V30h-8v12H6Zm30-20 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/></svg>
             <h1 id="homeTitle">下一站，理想的家</h1>
             <p class="home-subtitle">从一个问题开始，找到适合你的家</p>
+            </div>
           </div>
-          <div class="home-conversation" id="homeConversation" aria-label="AI 对话" aria-live="polite" hidden></div>
+          <div class="home-conversation-region">
+          <div class="home-conversation" id="homeConversation" role="log" tabindex="0" aria-label="AI 对话" aria-live="polite" hidden></div>
+          </div>
           <form class="home-composer" id="homeComposer" aria-label="询问购房助手">
             <div class="composer-shortcuts">
               <button class="icon-button" id="homePlus" type="button" aria-label="打开快捷功能" aria-haspopup="menu" aria-expanded="false" aria-controls="homeQuickMenu"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>

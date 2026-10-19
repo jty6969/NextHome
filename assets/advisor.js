@@ -6,6 +6,19 @@
   const node = (tag, value, cls) => { const el = document.createElement(tag); if (value != null) el.textContent = value; if (cls) el.className = cls; return el; };
   const name = id => { const p = site.getListings().find(p => p.id === id); return p?.listingTitle || p?.address || id; };
   const errors = {
+    AI_EMPTY_RESPONSE:['AI 返回的内容为空或格式异常，内容已保留，请重试。','AI returned an empty or invalid response. Your message is kept; please retry.'],
+    MESSAGE_REQUEST_CONFLICT:['这次发送的内容与原请求不一致，请修改输入后重新发送。','This retry differs from the original message. Edit your input and send again.'],
+    INVALID_REQUEST_ID:['发送标识无效，内容已保留，请刷新后重试。','The send identifier is invalid. Your message is kept; reload and retry.'],
+    SELLING_SAVE_FAILED:['回复暂未保存，内容已保留，可以安全重试。','The reply could not be saved. Your message is kept; you can safely retry.'],
+    AI_TIMEOUT:['AI 响应超时，内容已保留，请重试。','AI timed out. Your message is kept; please retry.'],
+    AI_REQUEST_TIMEOUT:['请求等待超时，内容已保留；请先查看历史，再决定是否重试。','The request timed out. Your message is kept; check history before retrying.'],
+    AI_NETWORK_ERROR:['网络连接中断，内容已保留，请检查网络后重试。','Network connection failed. Your message is kept; check your connection and retry.'],
+    AI_RATE_LIMIT:['发送过于频繁，请稍等一分钟后重试，内容已保留。','Too many messages. Wait a minute and retry; your message is kept.'],
+    AI_UPSTREAM_RATE_LIMIT:['AI 服务繁忙，内容已保留，请稍后重试。','AI service is busy. Your message is kept; retry shortly.'],
+    AI_PROVIDER_FORBIDDEN:['AI 服务拒绝了服务器连接，请联系管理员检查服务端网络与访问权限。','AI service rejected the server connection. Ask the administrator to check server network access.'],
+    AI_REQUEST_REJECTED:['AI 服务拒绝了请求格式，请联系管理员检查模型配置。','AI service rejected the request format. Ask the administrator to check model configuration.'],
+    LISTING_INCOMPLETE:['挂牌信息尚未齐全或存在待确认内容，请补充后重试。','Some listing details are missing, invalid or awaiting confirmation. Please complete them first.'],
+    INVALID_PROFILE:['信息格式不正确，请检查必填项、楼层、平方米和万元单位。','Check required fields, floor numbers, area in m² and price in CNY 10,000.'],
     PROFILE_CHANGED:['档案已有更新，已加载最新版本。请核对后重新保存。','The brief changed. The latest version has loaded. Review it and save again.'],
     AI_BALANCE_REQUIRED:['AI 服务余额不足，请管理员检查服务账户。','The AI service has insufficient balance. Ask the administrator to check the service account.'],
     AI_CREDENTIAL_INVALID:['AI 服务凭据无效，请管理员更新服务器配置。','The AI service credentials are invalid. Ask the administrator to update server configuration.'],
@@ -38,10 +51,19 @@
   open.addEventListener('click',()=>show(site.getUser()?.role==='seller'?'seller':'chat'));
   function notify(message) { notice.textContent=message; notice.hidden=!message; }
   async function api(path, data, method='POST') {
-    const response=await fetch(`/api/advisor/${path}`,{method:data===undefined?'GET':method,cache:'no-store',...(path.startsWith('draft?')?{keepalive:true}:{}),...(data===undefined?{}:{headers:{'content-type':'application/json'},body:JSON.stringify(data)})});
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok){ if(response.status===401){ state=null; await site.refreshSession(); } const pair=errors[result.error]||['操作失败，请检查输入或刷新后重试。','Operation failed. Check your input or refresh and retry.']; const error=Error(pair[english()?1:0]);error.copy=pair;throw error; }
-    return result;
+    const controller=new AbortController();let timer;
+    const rejectWith=code=>{const pair=errors[code];return Object.assign(Error(pair[english()?1:0]),{copy:pair,code});};
+    try{
+      return await Promise.race([(async()=>{
+        let response;
+        try{response=await fetch(`/api/advisor/${path}`,{signal:controller.signal,method:data===undefined?'GET':method,cache:'no-store',...(path.startsWith('draft?')?{keepalive:true}:{}),...(data===undefined?{}:{headers:{'content-type':'application/json'},body:JSON.stringify(data)})});}
+        catch{throw rejectWith('AI_NETWORK_ERROR');}
+        const result=await response.json().catch(()=>null);
+        if(!response.ok){if(response.status===401){state=null;site.refreshSession().catch(()=>{});}const pair=errors[result?.error]||['操作失败，请检查输入或刷新后重试。','Operation failed. Check your input or refresh and retry.'];throw Object.assign(Error(pair[english()?1:0]),{copy:pair,code:result?.error,requestId:result?.requestId});}
+        if(!result||typeof result!=='object'||(path==='ai'&&(typeof result.content!=='string'||!result.content.trim())))throw rejectWith('AI_EMPTY_RESPONSE');
+        return result;
+      })(),new Promise((_,reject)=>{timer=setTimeout(()=>{reject(rejectWith('AI_REQUEST_TIMEOUT'));controller.abort();},path==='ai'?65000:12000);})]);
+    }finally{clearTimeout(timer);}
   }
   function button(zh,en,action,primary=false){ const el=node('button',tr(zh,en),`advisor-button${primary?' advisor-primary':''}`);el.type='button';el.addEventListener('click',async()=>{if(el.disabled)return;el.disabled=true;try{notify('');await action();}catch(e){notify(e.message);}finally{el.disabled=false;}});return el; }
   function field(parent,labelZh,labelEn,type='text',value=''){const wrap=node('label',tr(labelZh,labelEn));const input=node(type==='textarea'?'textarea':'input');input.dataset.field=(parent.dataset.identity||'')+labelEn;if(type!=='textarea')input.type=type;input.value=value??'';wrap.append(input);parent.append(wrap);return input;}
@@ -69,12 +91,12 @@
     const messages=node('div',null,'advisor-messages');messages.id='advisorChatHistory';for(const m of state.chatHistory)chatBubble(messages,m);main.append(messages);messages.scrollTop=messages.scrollHeight;
     const input=field(main,'你的购房需求','Your home buying requirements','textarea');input.id='advisorChatInput';const voice=button('语音输入','Voice input',()=>speech(input));
     actions(main,button('发送','Send',async()=>{const value=input.value.trim();if(!value)return;notify(tr('正在分析…','Analyzing…'));await sendMessage(value);input.value='';await refresh();notify('');},true),voice);}
-  async function sendMessage(message, mode='buy'){
-    if(mode==='sell')return api('ai',{message,mode:'sell',propertyId:'primary',language:english()?'en':'zh'});
+  async function sendMessage(message, mode='buy', propertyId='primary', requestId){
+    if(mode==='sell')return api('ai',{message,mode:'sell',propertyId,...(requestId?{requestId}:{}),language:english()?'en':'zh'});
     const revision=accountRevision;
     if(busy)throw Error(tr('请等待当前回复完成。','Please wait for the current response.'));
     busy=true;
-    try {const result=await api('ai',{message,language:english()?'en':'zh'});await refresh(false).catch(()=>{});return result;}
+    try {const result=await api('ai',{message,language:english()?'en':'zh'});refresh(false).catch(()=>{});return result;}
     finally {if(revision===accountRevision)busy=false;}
   }
   function speech(input){const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){notify(tr('此浏览器不支持语音输入，请使用文字。','Voice input is unavailable in this browser. Please type.'));return;}if(recognition){stopSpeech();return;}recognition=new Recognition();recognition.lang=english()?'en-US':'zh-CN';recognition.interimResults=false;recognition.onresult=e=>{input.value=[input.value,...Array.from(e.results).filter(r=>r.isFinal).map(r=>r[0].transcript)].filter(Boolean).join(' ');};recognition.onerror=()=>notify(tr('无法使用麦克风，请检查浏览器权限。','Microphone unavailable. Check browser permissions.'));recognition.onend=()=>{recognition=null;};recognition.start();notify(tr('正在聆听，再点一次可停止。','Listening. Click again to stop.'));}
@@ -118,8 +140,9 @@
   document.addEventListener('keydown',e=>{if(overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();hide();}if(e.key==='Tab'){const controls=[...shell.querySelectorAll('button,input,textarea,select,a[href]')].filter(e=>!e.disabled&&!e.closest('[hidden]'));const i=controls.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();controls.at(-1)?.focus();}else if(!e.shiftKey&&(i===controls.length-1||i<0)){e.preventDefault();controls[0]?.focus();}}});
   const register=node('button',tr('注册新账号','Create account'),'dialog-cancel');register.id='advisorRegister';register.type='button';register.addEventListener('click',()=>{show();renderRegistration(true);});document.getElementById('loginFields')?.append(register);
   window.NexthomeAdvisor={show,sendMessage,getHistory:async()=>{await refresh(false);return state?.chatHistory||[];},
-    getSelling:()=>api('selling'), saveSelling:data=>api('selling',data,'PATCH'),
-    getDraft:mode=>api(`draft?mode=${mode}`), saveDraft:(mode,draft)=>api(`draft?mode=${mode}`,{draft},'PUT')};
+    getSelling:propertyId=>api('selling'+(propertyId&&propertyId!=='primary'?`?propertyId=${encodeURIComponent(propertyId)}`:'')), saveSelling:data=>api('selling',data,'PATCH'),
+    reviewSelling:propertyId=>api('selling/review',{propertyId}), confirmSelling:data=>api('selling/confirm',data),
+    getDraft:(mode,propertyId='primary')=>api(`draft?mode=${mode}${propertyId==='primary'?'':`&propertyId=${encodeURIComponent(propertyId)}`}`), saveDraft:(mode,draft,propertyId='primary')=>api(`draft?mode=${mode}${propertyId==='primary'?'':`&propertyId=${encodeURIComponent(propertyId)}`}`,{draft},'PUT')};
   headerText();if(site.getUser())refresh(false).catch(()=>{});
   const p=site.getListings().find(p=>p.id===new URL(location.href).searchParams.get('listing'));if(p)addDetail(p);
 })();
