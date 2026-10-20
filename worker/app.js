@@ -517,7 +517,11 @@ async function insertListing(env, user, listing, source) {
 async function createUserListing(request, env, user) {
   const payload = await readJson(request);
   if (payload.error) return json({ error: payload.error }, 400);
-  const validation = validateBasicListing(payload.value);
+  // Buyer and seller are capabilities of the same account. A signed-in user
+  // can therefore provide the same useful property details as an administrator
+  // when creating a listing; administrative edit/search permissions stay
+  // protected by the separate admin routes below.
+  const validation = validateAdminListing(payload.value);
   if (validation.error) return json({ error: validation.error }, 400);
   return json({ listing: await insertListing(env, user, validation.value, 'user_listing'), cloudSaved: true, localSync: 'pending' }, 201);
 }

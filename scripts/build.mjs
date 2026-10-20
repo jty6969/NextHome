@@ -10,6 +10,7 @@ await mkdir(path.join(dist, 'server'), { recursive: true });
 await mkdir(path.join(dist, 'client'), { recursive: true });
 await mkdir(path.join(dist, '.openai'), { recursive: true });
 await cp(path.join(root, 'index.html'), path.join(dist, 'client', 'index.html'));
+for (const file of ['manifest.webmanifest', 'sw.js']) await cp(path.join(root, file), path.join(dist, 'client', file));
 await cp(path.join(root, 'assets'), path.join(dist, 'client', 'assets'), { recursive: true });
 await build({
   entryPoints: [path.join(root, 'worker', 'index.js')],

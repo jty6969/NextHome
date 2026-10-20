@@ -15,6 +15,10 @@ npm run dev
 
 打开 <http://127.0.0.1:3000>。首次运行会在 `.local/nexthome.sqlite` 创建数据库并应用 `drizzle/` 迁移，再从应用自带的房源快照导入数据。该数据库不提交到 Git。
 
+需要让手机从外网访问、同时继续把房源保存到这台电脑时，使用带独立入口密码的远程模式；见 [REMOTE_ACCESS.md](REMOTE_ACCESS.md)。
+
+个人 iPhone App 体验：双击 `Start-NextHome-Mobile.cmd`，然后在 Safari 将输出的手机网址添加到主屏幕。电脑修改代码后，手机使用顶部 `App → 刷新版本`。完整说明见 [IPHONE_APP.md](IPHONE_APP.md)。
+
 买家和卖家可通过页面注册。示例管理员为 `管理员账号1`，示例密码为 `123456`，仅用于本地演示；部署到自己的生产环境前应配置并管理自己的账号。
 
 AI 功能需要服务端环境变量；未配置时页面仍可运行，AI 请求会提示配置缺失：

@@ -30,6 +30,15 @@ test('requirements keep local units, recognize negative elevator preference and 
   assert.equal(consultationStatus(data).ready, true);
   assert.equal(extractRequirements('budget 5 million').profile.budget, 500);
 });
+test('natural Chinese buyer descriptions capture rooms, work location, first-home status and amenities', () => {
+  const data = extractRequirements('我们一家三口想在上海浦东买三房自住，预算800万，首付300万，我在张江上班，通勤40分钟以内，要有电梯，至少100平方米，最好南北通，附近有公园和商场，名下无房。');
+  assert.equal(data.profile.workAddress, '张江');
+  assert.equal(data.profile.firstHome, true);
+  assert.equal(data.requirements.roomCount, 3);
+  assert.equal(data.requirements.orientation, '南北');
+  assert.equal(data.requirements.surroundingReq, '公园、商场');
+  assert.equal(consultationStatus(data).ready, true);
+});
 async function setup(t) {
   const db = await openDatabase(); t.after(() => db.close());
   const env = { DB:d1(db), ASSETS:{ fetch:async () => new Response(await readFile(new URL('../assets/properties-ai-table.json', import.meta.url), 'utf8')) } };
@@ -148,6 +157,15 @@ test('AI fixes upstream and context, rejects client secrets, avoids duplicate us
   assert.equal(result.status, 200); assert.doesNotMatch(result.data.content, /lshy-1/);
   assert.equal(captured.url, 'https://api.deepseek.com/chat/completions');
   assert.equal(captured.payload.messages.filter(m=>m.content==='test question').length, 1);
+  t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({
+    reply:'我已经整理好你的主要条件，接下来确认首付即可。',
+    profilePatch:{city:'杭州',workAddress:'滨江区物联网街',purpose:'自住'},
+    requirementsPatch:{roomCount:3,minArea:105,needElevator:true,surroundingReq:'公园和商场'},
+  })}}]})));
+  const natural=await c.call('/api/advisor/ai',{message:'我们平时生活比较安静，其他情况就按刚才聊的整理。'},c.buyer.cookie);
+  assert.equal(natural.status,200);assert.equal(natural.data.profile.city,'杭州');assert.equal(natural.data.profile.workAddress,'滨江区物联网街');
+  assert.equal(natural.data.requirements.roomCount,3);assert.equal(natural.data.requirements.minArea,105);assert.equal(natural.data.requirements.needElevator,true);
+  assert.equal(natural.data.content,'我已经整理好你的主要条件，接下来确认首付即可。');
   t.mock.method(globalThis,'fetch',async()=>new Response('{}',{status:402}));
   assert.equal((await c.call('/api/advisor/ai',{message:'余额检查'},c.buyer.cookie)).data.error,'AI_BALANCE_REQUIRED');
   delete c.env.DEEPSEEK_API_KEY;

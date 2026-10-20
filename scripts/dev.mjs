@@ -4,16 +4,26 @@ import path from 'node:path';
 import worker from '../worker/app.js';
 import { openDatabase, d1, root } from './local-db.mjs';
 import { migrateVictor } from './migrate-victor.mjs';
+import { externalRequest, publicRequestOrigin, validRemoteAuthorization, remoteAccessCookie, validRemoteCookie } from './remote-access.mjs';
+import { developmentVersion } from './dev-version.mjs';
+const remoteMode = process.argv.includes('--remote');
+const remoteUsername = process.env.NEXTHOME_REMOTE_USER || 'nexthome';
+const remotePassword = process.env.NEXTHOME_REMOTE_PASSWORD || '';
+if (remoteMode && remotePassword.length < 16) throw new Error('NEXTHOME_REMOTE_PASSWORD must contain at least 16 characters in remote mode.');
 const db = await openDatabase(path.join(root, process.argv.includes('--isolated') ? `.local/check-${Date.now()}.sqlite` : '.local/nexthome.sqlite'));
-const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.png':'image/png' };
+const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.webmanifest':'application/manifest+json', '.png':'image/png' };
 const env = { DB:d1(db), DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY || '', ASSETS:{
   async fetch(request) {
     let relative = new URL(request.url).pathname;
     if (relative === '/') relative = '/index.html';
-    if (relative !== '/index.html' && !relative.startsWith('/assets/')) return new Response('Not found', { status:404 });
+    if (!['/index.html', '/manifest.webmanifest', '/sw.js'].includes(relative) && !relative.startsWith('/assets/')) return new Response('Not found', { status:404 });
     const file = path.resolve(root, '.' + relative);
     if (!file.startsWith(root + path.sep)) return new Response('Forbidden', { status:403 });
-    try { return new Response(await readFile(file), { headers:{'content-type':mime[path.extname(file)] || 'application/octet-stream'} }); }
+    try {
+      let content = await readFile(file);
+      if (relative === '/index.html') content = content.toString().replace('</head>', `<meta name="nexthome-version" content="${await developmentVersion(root)}"></head>`);
+      return new Response(content, { headers:{'content-type':mime[path.extname(file)] || 'application/octet-stream', 'cache-control':'no-store'} });
+    }
     catch { return new Response('Not found', { status:404 }); }
   },
 } };
@@ -26,6 +36,13 @@ if (process.argv.includes('--victor-ai')) {
 const port = Number(process.env.PORT || 3000);
 const server = http.createServer(async (req, res) => {
   try {
+    const needsRemoteAuth = externalRequest(req.headers, remoteMode);
+    const basicAuthorized = needsRemoteAuth && validRemoteAuthorization(req.headers.authorization, remoteUsername, remotePassword);
+    if (needsRemoteAuth && !basicAuthorized && !validRemoteCookie(req.headers.cookie, remoteUsername, remotePassword)) {
+      res.writeHead(401, { 'content-type':'text/plain; charset=utf-8', 'cache-control':'no-store', 'www-authenticate':'Basic realm="NextHome Remote", charset="UTF-8"' });
+      res.end('Remote access authentication required.');
+      return;
+    }
     const chunks = []; let size = 0;
     for await (const chunk of req) {
       size += chunk.length;
@@ -34,11 +51,18 @@ const server = http.createServer(async (req, res) => {
     }
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) if (value) headers.set(key, Array.isArray(value) ? value.join(',') : value);
-    const request = new Request(`http://127.0.0.1:${port}${req.url}`, { method:req.method, headers,
+    if (needsRemoteAuth) headers.delete('authorization');
+    const requestOrigin = publicRequestOrigin(req.headers, port, remoteMode);
+    const request = new Request(`${requestOrigin}${req.url}`, { method:req.method, headers,
       ...(['GET','HEAD'].includes(req.method) ? {} : { body:Buffer.concat(chunks) }) });
-    const response = await worker.fetch(request, env);
+    const response = new URL(request.url).pathname === '/api/dev-version' && req.method === 'GET'
+      ? Response.json({ version: await developmentVersion(root) }, { headers:{'cache-control':'no-store'} })
+      : await worker.fetch(request, env);
     const output = Object.fromEntries(response.headers);
-    if (output['set-cookie']) output['set-cookie'] = output['set-cookie'].replace(/; Secure/g, '');
+    const secure = new URL(request.url).protocol === 'https:';
+    const cookies = response.headers.getSetCookie().map(cookie => secure ? cookie : cookie.replace(/; Secure/g, ''));
+    if (basicAuthorized && secure) cookies.push(remoteAccessCookie(remoteUsername, remotePassword));
+    if (cookies.length) output['set-cookie'] = cookies;
     res.writeHead(response.status, output);
     res.end(Buffer.from(await response.arrayBuffer()));
   } catch { res.writeHead(500); res.end('Local request failed'); }

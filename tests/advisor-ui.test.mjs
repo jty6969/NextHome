@@ -23,16 +23,16 @@ function fixture(t,logged=true){
 }
 test('advisor renders bilingual chat, retains failed AI drafts and closes accessibly',async t=>{
   const c=fixture(t);await flush();c.w.document.getElementById('advisorOpen').click();await flush();
-  const input=c.w.document.getElementById('advisorChatInput');input.value='预算800万，月供10000元';c.click('发送');await flush();
+  const input=c.w.document.getElementById('advisorChatInput');input.value='预算800万，月供10000元';c.click('发送给 AI');await flush();
   assert.equal(input.value,'预算800万，月供10000元');assert.match(c.w.document.querySelector('.advisor-notice').textContent,/暂时不可用/);
-  c.click('English');assert.equal(c.w.document.getElementById('advisorChatInput').value,input.value);assert.match(c.w.document.getElementById('advisorTitle').textContent,/Home buying/);
-  c.click('中文');assert.equal(c.w.document.getElementById('advisorChatInput').value,input.value);assert.match(c.w.document.getElementById('advisorTitle').textContent,/购房/);
+  c.click('English');assert.equal(c.w.document.getElementById('advisorChatInput').value,input.value);assert.match(c.w.document.getElementById('advisorTitle').textContent,/buyer & seller/);
+  c.click('中文');assert.equal(c.w.document.getElementById('advisorChatInput').value,input.value);assert.match(c.w.document.getElementById('advisorTitle').textContent,/买房与卖房/);
   assert.equal(c.w.document.getElementById('homePage').inert,true);
   c.w.document.dispatchEvent(new c.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(c.w.document.getElementById('advisorOverlay').hidden,true);assert.equal(c.w.document.getElementById('homePage').inert,false);
 });
-test('registration submits selected role and authenticated favorites do not replace guest favorites',async t=>{
+test('registration creates a combined buyer and seller account without role switching',async t=>{
   const c=fixture(t,false);c.w.document.getElementById('advisorRegister').click();await flush();
-  const fields=c.w.document.querySelectorAll('#advisorBody input');fields[0].value='new_seller';fields[1].value='张先生';fields[2].value='long-password';c.w.document.querySelector('#advisorBody select').value='seller';
+  const fields=c.w.document.querySelectorAll('#advisorBody input');fields[0].value='new_seller';fields[1].value='张先生';fields[2].value='long-password';
   c.setLanguage('en');assert.equal(c.w.document.querySelector('#advisorBody input').value,'new_seller');c.click('Register and sign in');await flush();
   const submitted=c.requests.find(r=>r.url.endsWith('/auth/register'));assert.equal(submitted.data.role,'seller');assert.equal(submitted.data.username,'new_seller');assert.deepEqual(c.favorites(),['lshy-1']);
   c.logout();assert.deepEqual(c.favorites(),['guest-home']);
@@ -44,4 +44,12 @@ test('detail browse events, escaped messages and microphone recognition work in 
   let recognition;c.w.SpeechRecognition=class{constructor(){recognition=this;}start(){}abort(){this.aborted=true;}};
   c.click('语音输入');assert.equal(recognition.lang,'zh-CN');recognition.onresult({results:[Object.assign([{transcript:'三室一厅'}],{isFinal:true})]});assert.equal(c.w.document.getElementById('advisorChatInput').value,'三室一厅');
   c.w.document.dispatchEvent(new c.w.KeyboardEvent('keydown',{key:'Escape'}));assert.equal(recognition.aborted,true);
+});
+test('homepage natural-language event opens AI chat and submits the full message',async t=>{
+  const c=fixture(t);await flush();
+  const message='一家三口预算八百万，在张江上班，希望三房有电梯和公园';
+  c.w.document.dispatchEvent(new c.w.CustomEvent('nexthome-ai-start',{detail:{message}}));await flush();await flush();
+  assert.equal(c.w.document.getElementById('advisorOverlay').hidden,false);
+  assert.equal(c.requests.find(r=>r.url.endsWith('/ai'))?.data.message,message);
+  assert.equal(c.w.document.getElementById('advisorChatInput').value,message);
 });

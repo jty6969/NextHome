@@ -65,12 +65,12 @@ test('default, persisted and invalid preferences initialize safely; language nam
       assert.equal(p.dom.window.localStorage.getItem('nexthome.language'), 'en');
       assert.equal(p.document.title, 'Nexthome | Property Library');
       p.choose('zh-CN');
-      assert.equal(p.get('propertyInfoButton').textContent, '房屋信息');
+      assert.equal(p.get('propertyInfoButton').textContent, '买房');
       assert.equal(p.dom.window.localStorage.getItem('nexthome.language'), 'zh-CN');
     } finally { p.dom.window.close(); }
   }
   const p = await page({ storageBlocked: true });
-  try { p.choose('en'); assert.equal(p.get('propertyInfoButton').textContent, 'Properties'); }
+  try { p.choose('en'); assert.equal(p.get('propertyInfoButton').textContent, 'Buy'); }
   finally { p.dom.window.close(); }
 });
 

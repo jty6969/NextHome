@@ -10,7 +10,7 @@ test('page script parses and element ids remain unique', async () => {
 
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length);
-  for (const requiredId of ['authButton', 'authModal', 'listingModal', 'openAdminModal', 'adminModal', 'listingGrid']) {
+  for (const requiredId of ['authButton', 'authModal', 'listingModal', 'openAdminModal', 'adminModal', 'listingGrid', 'openMapNav', 'openListingNav', 'headerMapButton', 'listingAreaSqm', 'mobileBuy', 'mobileMap', 'mobileSell', 'mobileWorkspace', 'aiStartForm', 'aiStartInput', 'aiStartVoice', 'manualSearchTools']) {
     assert.ok(ids.includes(requiredId), `missing #${requiredId}`);
   }
   assert.doesNotMatch(html, /openCollectModal|收录房源/);

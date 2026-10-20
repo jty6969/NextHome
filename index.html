@@ -2,7 +2,13 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0e2a4c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="NextHome" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+    <link rel="apple-touch-icon" href="/assets/app-icon-180.png" />
     <meta
       name="description"
       content="Nexthome 房源浏览原型，支持按区域、户型、价格、面积等条件查找和比较房源。"
@@ -61,10 +67,12 @@
         font-size: 18px;
       }
 
-      nav { display: flex; align-items: center; gap: 28px; font-size: 15px; }
-      nav a { color: #cbd6e2; text-decoration: none; }
-      nav a.active, nav a:hover { color: #fff; }
+      nav { display: flex; align-items: center; gap: 24px; font-size: 15px; }
+      nav a,
+      nav button { padding: 0; border: 0; color: #cbd6e2; background: transparent; font: inherit; text-decoration: none; cursor: pointer; }
+      nav a.active, nav a:hover, nav button:hover { color: #fff; }
       .header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .mobile-task-nav { display: none; }
       .ghost-button {
         min-height: 40px;
         padding: 0 17px;
@@ -152,7 +160,8 @@
       .password-toggle svg { width: 22px; height: 22px; }
       .password-toggle[aria-pressed="false"] .eye-slash { display: none; }
       .form-field input::placeholder { color: #9aa6b6; }
-      .form-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+      .form-field input:focus,
+      .form-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
       .field-hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
       .form-message { margin: 14px 0 0; color: #b42318; font-size: 13px; font-weight: 700; line-height: 1.5; }
       .form-message[hidden] { display: none; }
@@ -210,7 +219,17 @@
       .hero-inner { position: relative; z-index: 1; padding: 56px 0 44px; }
 
       h1 { margin: 0; max-width: 700px; font-size: clamp(32px, 4.4vw, 50px); line-height: 1.08; letter-spacing: -.04em; }
-
+      .hero-kicker { display: inline-flex; margin-bottom: 14px; padding: 6px 10px; border-radius: 999px; color: #dbeafe; background: rgba(37,99,235,.28); font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+      .hero-description { max-width: 760px; margin: 16px 0 0; color: #d6e0eb; font-size: 17px; line-height: 1.7; }
+      .ai-start-form { max-width: 900px; margin-top: 26px; padding: 8px; border-radius: 18px; background: #fff; box-shadow: 0 20px 55px rgba(0,0,0,.22); }
+      .ai-start-form textarea { display: block; width: 100%; min-height: 104px; resize: vertical; padding: 17px 18px; border: 0; outline: 0; color: var(--ink); background: transparent; font: inherit; font-size: 16px; line-height: 1.65; }
+      .ai-start-form textarea::placeholder { color: #8795a8; }
+      .ai-start-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 4px 4px; }
+      .ai-voice-button, .ai-start-button { min-height: 46px; padding: 0 18px; border-radius: 12px; font-weight: 850; }
+      .ai-voice-button { border: 1px solid #d7e0eb; color: var(--navy); background: #f6f8fb; }
+      .ai-start-button { border: 1px solid var(--accent); color: #fff; background: var(--accent); }
+      .ai-start-button:hover { background: var(--accent-dark); }
+      .ai-privacy-note { margin: 12px 0 0; color: #aebed0; font-size: 12px; line-height: 1.6; }
 
       .search-shell {
         display: flex;
@@ -258,6 +277,13 @@
       .quick-links button:hover { color: #fff; }
 
       .content { padding: 42px 0 84px; }
+      .manual-search-tools { margin-bottom: 26px; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--shadow); }
+      .manual-search-tools summary { padding: 18px 22px; color: var(--navy); cursor: pointer; font-weight: 850; }
+      .manual-search-inner { padding: 0 22px 22px; }
+      .manual-search-inner .search-shell { max-width: none; margin: 0 0 14px; border: 1px solid var(--line); box-shadow: none; }
+      .manual-search-inner .quick-links { margin: 0 0 18px; color: var(--muted); }
+      .manual-search-inner .quick-links button:hover { color: var(--blue); }
+      .manual-search-inner .filter-panel { box-shadow: none; }
       .filter-panel {
         position: relative;
         z-index: 2;
@@ -353,6 +379,7 @@
         html[lang="en"] nav { display: none; }
       }
       @media (max-width: 680px) {
+        body { padding-bottom: 68px; }
         .header-inner, .hero-inner, .content { width: min(calc(100% - 26px), 1280px); }
         .site-header { height: 60px; }
         .header-inner { gap: 10px; }
@@ -366,6 +393,10 @@
         .admin-entry { padding: 0 9px; font-size: 12px; }
         .listing-button { min-height: 38px; padding: 0 10px; font-size: 13px; }
         .hero-inner { padding: 40px 0 30px; }
+        .hero-description { font-size: 15px; }
+        .ai-start-form textarea { min-height: 132px; padding: 14px; font-size: 15px; }
+        .ai-start-actions { display: grid; grid-template-columns: 1fr 1.4fr; }
+        .manual-search-inner { padding: 0 14px 14px; }
 
         .search-shell { width: 100%; min-height: 54px; overflow: hidden; }
         .map-button { display: flex; padding: 0 8px; font-size: 12px; }
@@ -389,6 +420,24 @@
         .admin-search-row input { flex: 1 1 200px; }
         .admin-search-row button { flex: 1 0 auto; }
         .header-actions > button { flex-shrink: 0; }
+        .mobile-task-nav {
+          position: fixed; z-index: 34; right: 10px; bottom: 10px; left: 10px;
+          display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+          padding: 6px; border: 1px solid rgba(14,42,76,.12); border-radius: 16px;
+          background: rgba(255,255,255,.96); box-shadow: 0 12px 32px rgba(14,42,76,.2); backdrop-filter: blur(12px);
+        }
+        html[lang="en"] .mobile-task-nav { display: grid; }
+        .mobile-task-nav button {
+          min-height: 46px; padding: 4px 2px; border: 0; border-radius: 11px;
+          color: var(--navy); background: transparent; font-size: 13px; font-weight: 800;
+        }
+        .mobile-task-nav button:hover, .mobile-task-nav button:focus-visible { color: #fff; background: var(--blue); }
+        body:has(.listing-modal:not([hidden])) .mobile-task-nav,
+        body:has(.map-modal:not([hidden])) .mobile-task-nav,
+        body:has(.advisor-overlay:not([hidden])) .mobile-task-nav,
+        html[lang="en"] body:has(.listing-modal:not([hidden])) .mobile-task-nav,
+        html[lang="en"] body:has(.map-modal:not([hidden])) .mobile-task-nav,
+        html[lang="en"] body:has(.advisor-overlay:not([hidden])) .mobile-task-nav { display: none; }
         .form-grid { grid-template-columns: 1fr; }
         .form-grid .full-row, .form-section-title { grid-column: 1; }
         .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
@@ -448,16 +497,16 @@
         .detail-photo { height: 240px; flex-basis: 100%; }
       }
     </style>
+    <link rel="stylesheet" href="/assets/mobile-app.css" />
   </head>
   <body>
     <header class="site-header">
       <div class="header-inner">
         <div class="brand"><span class="brand-mark">N</span><span>Nexthome</span></div>
         <nav aria-label="主导航">
-          <a class="active" href="#listings">二手房</a>
-          <a href="#">新房</a>
-          <a href="#">小区</a>
-          <a href="#">房产资讯</a>
+          <a class="active" href="#listings">买房</a>
+          <button id="openMapNav" type="button">地图找房</button>
+          <button id="openListingNav" type="button">我要卖房</button>
         </nav>
         <div class="header-actions">
           <div class="language-switch" id="languageSwitch">
@@ -469,38 +518,61 @@
               </div>
             </div>
           </div>
-          <button class="ghost-button" id="propertyInfoButton" type="button">房屋信息</button>
+          <button class="ghost-button" id="propertyInfoButton" type="button">买房</button>
+          <button class="ghost-button" id="headerMapButton" type="button">地图</button>
           <button class="listing-button admin-entry" id="openAdminModal" type="button" hidden>手动录入房源</button>
-          <button class="listing-button" id="openListingModal" type="button">挂牌</button>
+          <button class="listing-button" id="openListingModal" type="button">我要卖房</button>
           <button class="ghost-button account-button" id="authButton" type="button">登录 / 注册</button>
         </div>
       </div>
     </header>
 
+    <nav class="mobile-task-nav" aria-label="快捷操作">
+      <button id="mobileBuy" type="button">买房</button>
+      <button id="mobileMap" type="button">地图</button>
+      <button id="mobileSell" type="button">卖房</button>
+      <button id="mobileWorkspace" type="button">工作台</button>
+    </nav>
+
     <div class="listing-modal" id="listingModal" hidden>
-      <section class="listing-dialog" role="dialog" aria-modal="true" aria-labelledby="listingDialogTitle" aria-describedby="listingDialogDescription">
+      <section class="listing-dialog wide-dialog" role="dialog" aria-modal="true" aria-labelledby="listingDialogTitle" aria-describedby="listingDialogDescription">
         <div class="dialog-header">
-          <h2 id="listingDialogTitle">房屋挂牌</h2>
-          <p id="listingDialogDescription">留下房屋与联系方式，Nexthome 顾问将尽快与您联系。</p>
+          <h2 id="listingDialogTitle">登记出售房源</h2>
+          <p id="listingDialogDescription">同一账号可以卖房，也可以继续买房、使用 AI 顾问和地图找房。联系信息和地址为必填，其余信息可稍后补充。</p>
         </div>
         <form class="listing-form" id="listingForm">
-          <div class="form-field">
-            <label for="ownerName">姓名 <span class="required" aria-hidden="true">*</span></label>
-            <input id="ownerName" name="ownerName" type="text" autocomplete="name" placeholder="请输入您的姓名" required />
-          </div>
-          <div class="form-field">
-            <label for="ownerPhone">电话 <span class="required" aria-hidden="true">*</span></label>
-            <input id="ownerPhone" name="ownerPhone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="请输入 11 位手机号" pattern="1[3-9][0-9]{9}" maxlength="11" required />
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="ownerName">姓名 <span class="required" aria-hidden="true">*</span></label>
+              <input id="ownerName" name="ownerName" type="text" autocomplete="name" placeholder="请输入您的姓名" maxlength="50" required />
+            </div>
+            <div class="form-field">
+              <label for="ownerPhone">电话 <span class="required" aria-hidden="true">*</span></label>
+              <input id="ownerPhone" name="contactPhone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="请输入 11 位手机号" pattern="1[3-9][0-9]{9}" maxlength="11" required />
+            </div>
           </div>
           <div class="form-field">
             <label for="propertyAddress">详细住址 <span class="required" aria-hidden="true">*</span></label>
-            <input id="propertyAddress" name="propertyAddress" type="text" autocomplete="street-address" placeholder="例如：春江花月小区 3 幢 1202 室" minlength="4" required />
-            <p class="field-hint">请填写小区名称和具体门牌号。</p>
+            <input id="propertyAddress" name="address" type="text" autocomplete="street-address" placeholder="例如：春江花月小区 3 幢 1202 室" minlength="4" maxlength="200" required />
+            <p class="field-hint">请填写小区名称和具体门牌号；详细门牌用于核实，公开展示前应做隐私处理。</p>
+          </div>
+          <h3 class="form-section-title">房屋基本信息（选填）</h3>
+          <div class="form-grid">
+            <div class="form-field"><label for="listingAreaSqm">建筑面积（㎡）</label><input id="listingAreaSqm" name="areaSqm" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" /></div>
+            <div class="form-field"><label for="listingTotalPriceWan">期望总价（万元）</label><input id="listingTotalPriceWan" name="totalPriceWan" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" /></div>
+            <div class="form-field"><label for="listingBedrooms">卧室</label><input id="listingBedrooms" name="bedrooms" type="number" inputmode="numeric" min="1" max="20" step="1" /></div>
+            <div class="form-field"><label for="listingLivingRooms">客厅</label><input id="listingLivingRooms" name="livingRooms" type="number" inputmode="numeric" min="0" max="20" step="1" /></div>
+            <div class="form-field"><label for="listingBathrooms">卫生间</label><input id="listingBathrooms" name="bathrooms" type="number" inputmode="numeric" min="0" max="20" step="1" /></div>
+            <div class="form-field"><label for="listingOrientation">朝向</label><input id="listingOrientation" name="orientation" type="text" maxlength="30" placeholder="例如：南北" /></div>
+            <div class="form-field"><label for="listingFloorLevel">所在楼层</label><input id="listingFloorLevel" name="floorLevel" type="number" inputmode="numeric" min="1" max="1000" step="1" /></div>
+            <div class="form-field"><label for="listingFloorTotal">总楼层</label><input id="listingFloorTotal" name="floorTotal" type="number" inputmode="numeric" min="1" max="1000" step="1" /></div>
+            <div class="form-field"><label for="listingDecoration">装修</label><select id="listingDecoration" name="decoration"><option value="">请选择</option><option>毛坯</option><option>简装</option><option>精装</option><option>豪装</option></select></div>
+            <div class="form-field"><label for="listingElevator">电梯</label><select id="listingElevator" name="elevator"><option value="">请选择</option><option>有电梯</option><option>无电梯</option></select></div>
           </div>
           <p class="form-message" id="listingFormMessage" role="alert" hidden></p>
           <div class="dialog-actions">
             <button class="dialog-cancel" id="closeListingModal" type="button">取消</button>
-            <button class="dialog-submit" id="submitListingButton" type="submit">提交挂牌</button>
+            <button class="dialog-submit" id="submitListingButton" type="submit">保存出售房源</button>
           </div>
         </form>
       </section>
@@ -511,7 +583,7 @@
       <section class="listing-dialog" role="dialog" aria-modal="true" aria-labelledby="authDialogTitle">
         <div class="dialog-header">
           <h2 id="authDialogTitle">账号登录</h2>
-          <p id="authDialogDescription">登录后可以提交挂牌。</p>
+          <p id="authDialogDescription">登录一个账号，即可买房、卖房、使用 AI 顾问和地图找房。</p>
         </div>
         <form class="listing-form" id="loginForm">
           <div id="loginFields">
@@ -642,21 +714,23 @@
     <main id="homePage">
       <section class="hero">
         <div class="hero-inner">
-
-          <h1>找到适合你的家</h1>
-
-          <form class="search-shell" id="searchForm" role="search">
-            <input id="searchInput" type="search" aria-label="搜索区域、商圈或小区" placeholder="输入区域、商圈或小区名" />
-            <button class="map-button" id="openMap" type="button" aria-label="地图找房" aria-haspopup="dialog">⌖ 地图找房</button>
-            <button class="search-button" type="submit">搜索</button>
+          <span class="hero-kicker">AI 全程购房助手</span>
+          <h1>不用填表，直接告诉 AI 你想买什么家</h1>
+          <p class="hero-description">像和一位耐心的购房顾问聊天一样，说说家庭、预算、工作地点和在意的生活条件。AI 会自动整理需求，只追问真正缺少的信息，再推荐并陪你推进看房、议价和交易。</p>
+          <form class="ai-start-form" id="aiStartForm">
+            <textarea id="aiStartInput" maxlength="4000" aria-label="用自然语言描述购房需求" placeholder="例如：我们一家三口想在上海浦东买一套自住三房，总价 800 万左右，首付 300 万，我在张江上班，希望通勤 40 分钟内，有电梯，附近最好有公园和商场。"></textarea>
+            <div class="ai-start-actions">
+              <button class="ai-voice-button" id="aiStartVoice" type="button">🎙 语音说需求</button>
+              <button class="ai-start-button" type="submit">让 AI 开始找房</button>
+            </div>
           </form>
-          <div class="quick-links" aria-label="热门搜索">
-            <span>热门：</span>
-            <button type="button" data-keyword="滨江">滨江</button>
-            <button type="button" data-keyword="地铁房">地铁房</button>
-            <button type="button" data-keyword="三室">品质三室</button>
-            <button type="button" data-keyword="近学校">近学校</button>
+          <div class="quick-links" aria-label="购房需求示例">
+            <span>可以这样说：</span>
+            <button type="button" data-ai-example="一家三口，预算 800 万，首付 300 万，想在浦东买三房自住。" data-ai-example-en="We are a family of three with a budget of CNY 8M and CNY 3M down, looking for a three-bedroom home in Pudong.">家庭与预算</button>
+            <button type="button" data-ai-example="我在张江上班，希望通勤 40 分钟以内，附近有地铁和商场。" data-ai-example-en="I work in Zhangjiang and want a commute under 40 minutes, with metro access and shopping nearby.">通勤与配套</button>
+            <button type="button" data-ai-example="至少 100 平方米，要有电梯，不要顶楼，采光和安静最重要。" data-ai-example-en="At least 100 square metres, with a lift, not on the top floor; daylight and quiet surroundings matter most.">房屋偏好</button>
           </div>
+          <p class="ai-privacy-note">AI 会把对话整理成购房需求档案；报价、预约和交易确认仍由你亲自确认。</p>
         </div>
       </section>
 
@@ -665,7 +739,22 @@
           <p id="localSyncMessage"></p>
           <button class="dialog-cancel" id="retryLocalSync" type="button">重试本地同步</button>
         </div>
-        <div class="filter-panel" aria-label="房源筛选">
+        <details class="manual-search-tools" id="manualSearchTools">
+          <summary>手动搜索与筛选（可选）</summary>
+          <div class="manual-search-inner">
+            <form class="search-shell" id="searchForm" role="search">
+              <input id="searchInput" type="search" aria-label="搜索区域、商圈或小区" placeholder="输入区域、商圈或小区名" />
+              <button class="map-button" id="openMap" type="button" aria-label="地图找房" aria-haspopup="dialog">⌖ 地图找房</button>
+              <button class="search-button" type="submit">搜索</button>
+            </form>
+            <div class="quick-links" aria-label="热门搜索">
+              <span>热门：</span>
+              <button type="button" data-keyword="滨江">滨江</button>
+              <button type="button" data-keyword="地铁房">地铁房</button>
+              <button type="button" data-keyword="三室">品质三室</button>
+              <button type="button" data-keyword="近学校">近学校</button>
+            </div>
+            <div class="filter-panel" aria-label="房源筛选">
           <div class="field">
             <label for="district">区域</label>
             <select id="district"><option value="">不限区域</option><option>滨江</option><option>城西</option><option>市中心</option></select>
@@ -686,8 +775,10 @@
             <label for="decoration">装修</label>
             <select id="decoration"><option value="">不限装修</option><option>精装</option><option>简装</option><option>毛坯</option></select>
           </div>
-          <button class="clear-filter" id="clearFilter" type="button">重置条件</button>
-        </div>
+              <button class="clear-filter" id="clearFilter" type="button">重置条件</button>
+            </div>
+          </div>
+        </details>
 
         <div class="result-bar">
           <div>
@@ -802,15 +893,20 @@
         '拖动地图或双指缩放；键盘方向键移动，+ / - 缩放。同址房源标记展开显示，坐标不变。': 'Drag or pinch to zoom. Use arrow keys to pan and + / - to zoom. Markers sharing a location are spread visually; coordinates stay unchanged.',
         '切换语言': 'Language', '主导航': 'Main navigation', '二手房': 'Resale homes', '新房': 'New homes',
         '小区': 'Communities', '房产资讯': 'Property news', '房屋信息': 'Properties',
+        '买房': 'Buy', '地图': 'Map', '卖房': 'Sell', '我要卖房': 'Sell a home', '工作台': 'Workspace', '快捷操作': 'Quick actions',
         '手动录入房源': 'Manage properties', '挂牌': 'List a home', '登录 / 注册': 'Log in / Register',
-        '房屋挂牌': 'List your home', '留下房屋与联系方式，Nexthome 顾问将尽快与您联系。': 'Leave your property and contact details. A Nexthome advisor will contact you soon.',
+        '登记出售房源': 'List a home for sale',
+        '同一账号可以卖房，也可以继续买房、使用 AI 顾问和地图找房。联系信息和地址为必填，其余信息可稍后补充。': 'One account can sell and buy homes, use the AI advisor, and search on the map. Contact details and address are required; other details can be added later.',
         '姓名': 'Name', '电话': 'Phone', '详细住址': 'Full address', '请输入您的姓名': 'Enter your name',
         '请输入 11 位手机号': 'Enter an 11-digit mobile number', '例如：春江花月小区 3 幢 1202 室': 'Community name, building and apartment number',
         '请填写小区名称和具体门牌号。': 'Enter the community name and full street or apartment number.',
-        '取消': 'Cancel', '提交挂牌': 'Submit listing', '挂牌信息已提交，我们会尽快联系您。': 'Your listing has been submitted. We will contact you soon.',
+        '请填写小区名称和具体门牌号；详细门牌用于核实，公开展示前应做隐私处理。': 'Enter the community and full address. The exact unit is for verification and should be hidden before public display.',
+        '房屋基本信息（选填）': 'Home details (optional)', '建筑面积（㎡）': 'Floor area (m²)', '期望总价（万元）': 'Asking price (wan)',
+        '取消': 'Cancel', '提交挂牌': 'Submit listing', '保存出售房源': 'Save property', '挂牌信息已提交，我们会尽快联系您。': 'Your listing has been submitted. We will contact you soon.',
         '账号登录': 'Log in', '账号信息': 'Account', '登录后可以提交挂牌。': 'Log in to submit a property listing.',
+        '登录一个账号，即可买房、卖房、使用 AI 顾问和地图找房。': 'One account lets you buy and sell homes, use the AI advisor, and search on the map.',
         '用户名': 'Username', '密码': 'Password', '显示密码': 'Show password', '隐藏密码': 'Hide password',
-        '安全退出': 'Log out', '登录': 'Log in', '管理员': 'Administrator', '普通用户': 'User',
+        '安全退出': 'Log out', '登录': 'Log in', '管理员': 'Administrator', '普通用户': 'User', '买卖账号': 'Buyer & seller',
         '查看账号或安全退出': 'View account or log out', '登录中…': 'Logging in…', '已安全退出登录。': 'You have logged out.',
         '新增时基础联系信息必填，详细信息按实际情况选填；编辑时保留未修改的值，清空选填项后保存为空。': 'Contact details are required for new listings; other details are optional. When editing, unchanged values are retained and cleared optional fields are saved as empty.',
         '房源操作': 'Property actions', '新增房源': 'Add property', '补充／编辑已有房源': 'Edit existing property',
@@ -826,6 +922,17 @@
         '精装修': 'Fully finished', '豪装': 'Luxury finish', '电梯': 'Elevator', '有电梯': 'With elevator', '无电梯': 'No elevator',
         '有': 'Yes', '无': 'No', '保存房源': 'Save property', '保存修改': 'Save changes', '处理中…': 'Processing…',
         '找到适合你的家': 'Find the right home for you', '搜索区域、商圈或小区': 'Search by area, neighbourhood or community',
+        'AI 全程购房助手': 'AI home-buying copilot',
+        '不用填表，直接告诉 AI 你想买什么家': 'Skip the forms. Tell AI what kind of home you want',
+        '像和一位耐心的购房顾问聊天一样，说说家庭、预算、工作地点和在意的生活条件。AI 会自动整理需求，只追问真正缺少的信息，再推荐并陪你推进看房、议价和交易。': 'Talk naturally about your household, budget, workplace and lifestyle priorities. AI organizes the brief, asks only for what is missing, recommends homes and guides viewings, offers and the transaction.',
+        '用自然语言描述购房需求': 'Describe your home-buying needs naturally',
+        '例如：我们一家三口想在上海浦东买一套自住三房，总价 800 万左右，首付 300 万，我在张江上班，希望通勤 40 分钟内，有电梯，附近最好有公园和商场。': 'For example: We are a family of three looking for a three-bedroom home in Pudong, Shanghai, around CNY 8M with CNY 3M down. I work in Zhangjiang and want a commute under 40 minutes, a lift, a nearby park and shopping.',
+        '🎙 语音说需求': '🎙 Speak your needs', '正在聆听…': 'Listening…', '让 AI 开始找房': 'Ask AI to find homes',
+        '购房需求示例': 'Home-buying examples', '可以这样说：': 'Try saying:', '家庭与预算': 'Household & budget', '通勤与配套': 'Commute & amenities', '房屋偏好': 'Home preferences',
+        'AI 会把对话整理成购房需求档案；报价、预约和交易确认仍由你亲自确认。': 'AI turns the conversation into a buyer brief; you still personally confirm offers, appointments and transaction steps.',
+        '手动搜索与筛选（可选）': 'Manual search and filters (optional)',
+        '请先描述你的购房需求。': 'Describe your home-buying needs first.', '此浏览器不支持语音输入，请直接输入文字。': 'Voice input is unavailable in this browser. Please type instead.',
+        '无法使用麦克风，请检查浏览器权限。': 'Microphone unavailable. Check browser permissions.',
         '输入区域、商圈或小区名': 'Enter an area, neighbourhood or community', '地图找房': 'Find homes on map', '⌖ 地图找房': '⌖ Map search',
         '热门搜索': 'Popular searches', '热门：': 'Popular:', '滨江': 'Riverside', '城西': 'West city', '市中心': 'City centre',
         '地铁房': 'Near metro', '品质三室': 'Three bedrooms', '近学校': 'Near schools', '房源筛选': 'Property filters',
@@ -854,6 +961,7 @@
         '房源已保存，列表刷新失败。输入已保留，可关闭后刷新页面；再次保存不会新增重复房源。': 'The property was saved, but the list could not refresh. Your input is retained. Close and refresh the page; saving again will not create a duplicate.',
         '房源修改已保存，房屋信息列表已更新。': 'Changes saved. The property list has been updated.',
         '房源已录入并更新到房屋信息列表。': 'Property saved and added to the property list.',
+        '房源已保存，可在买卖工作台管理，也可以继续买房和看地图。': 'Property saved. Manage it in the workspace, or continue buying and searching on the map.',
         '重试本地同步': 'Retry local sync',
         '云端已保存；等待本机同步。': 'Saved to cloud; waiting for this device to sync.',
         '云端已保存；本机已同步到 listing-data。': 'Saved to cloud; synced to listing-data on this device.',
@@ -901,8 +1009,8 @@
         if (language === 'zh-CN' || !text) return text;
         if (Object.hasOwn(englishCopy, text)) return englishCopy[text];
         const patterns = [
-          [/^(.+) · (管理员|普通用户)$/, (_, name, role) => `${name} · ${englishCopy[role]}`],
-          [/^当前登录：(.+)（(管理员|普通用户)）$/, (_, name, role) => `Logged in: ${name} (${englishCopy[role]})`],
+          [/^(.+) · (管理员|普通用户|买卖账号)$/, (_, name, role) => `${name} · ${englishCopy[role]}`],
+          [/^当前登录：(.+)（(管理员|普通用户|买卖账号)）$/, (_, name, role) => `Logged in: ${name} (${englishCopy[role]})`],
           [/^欢迎回来，(.*)$/, (_, name) => `Welcome back, ${name}`],
           [/^已选择：(.*) · ID：(.*)$/, (_, address, id) => `Selected: ${address} · ID: ${id}`],
           [/^找到 (\d+) 套房源(.*)。$/, (_, count) => `Found ${count} properties. ${Number(count) > 50 ? 'Showing the first 50; narrow your search.' : 'Select a property to edit.'}`],
@@ -1084,6 +1192,9 @@
       setLanguage(language);
       const fields = ['district', 'layout', 'price', 'area', 'decoration'].map(id => document.getElementById(id));
       const searchInput = document.getElementById('searchInput');
+      const aiStartForm = document.getElementById('aiStartForm');
+      const aiStartInput = document.getElementById('aiStartInput');
+      const aiStartVoice = document.getElementById('aiStartVoice');
       const resultCount = document.getElementById('resultCount');
       const emptyState = document.getElementById('emptyState');
       let propertiesStatus = 'loading';
@@ -1098,6 +1209,8 @@
       const ownerNameInput = document.getElementById('ownerName');
       const ownerPhoneInput = document.getElementById('ownerPhone');
       const propertyAddressInput = document.getElementById('propertyAddress');
+      const listingDetailNames = ['areaSqm', 'totalPriceWan', 'bedrooms', 'livingRooms', 'bathrooms', 'orientation', 'floorLevel', 'floorTotal', 'decoration', 'elevator'];
+      const listingNumericNames = new Set(['areaSqm', 'totalPriceWan', 'bedrooms', 'livingRooms', 'bathrooms', 'floorLevel', 'floorTotal']);
       const authButton = document.getElementById('authButton');
       const authModal = document.getElementById('authModal');
       const loginForm = document.getElementById('loginForm');
@@ -1128,6 +1241,8 @@
       let currentUser = null;
       let authRevision = 0;
       let pendingAction = null;
+      let pendingAiPrompt = '';
+      let heroRecognition = null;
       const localSyncPanel = document.getElementById('localSyncPanel');
       const localSyncMessage = document.getElementById('localSyncMessage');
       const retryLocalSync = document.getElementById('retryLocalSync');
@@ -1251,7 +1366,7 @@
       }
 
       function roleLabel(role) {
-        return role === 'admin' ? '管理员' : role === 'seller' ? (language === 'en' ? 'Seller' : '卖家') : '普通用户';
+        return role === 'admin' ? '管理员' : '买卖账号';
       }
 
       function updateAuthUI(user) {
@@ -1294,6 +1409,47 @@
         uiText(document.getElementById('loggedInDescription'), loggedIn
           ? `当前登录：${currentUser.username}（${roleLabel(currentUser.role)}）`
           : '');
+      }
+
+      function startAiJourney(message) {
+        const prompt = String(message || '').trim();
+        if (!prompt) {
+          aiStartInput.setCustomValidity(translateUI('请先描述你的购房需求。'));
+          aiStartInput.reportValidity();
+          return;
+        }
+        aiStartInput.setCustomValidity('');
+        if (!currentUser) {
+          pendingAiPrompt = prompt;
+          openAuthModal('ai');
+          return;
+        }
+        pendingAiPrompt = '';
+        document.dispatchEvent(new CustomEvent('nexthome-ai-start', { detail: { message: prompt } }));
+      }
+
+      function stopHeroRecognition() {
+        heroRecognition?.abort();
+        heroRecognition = null;
+        uiText(aiStartVoice, '🎙 语音说需求');
+      }
+
+      function startHeroRecognition() {
+        if (heroRecognition) { stopHeroRecognition(); return; }
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Recognition) { showToast('此浏览器不支持语音输入，请直接输入文字。'); return; }
+        heroRecognition = new Recognition();
+        heroRecognition.lang = language === 'en' ? 'en-US' : 'zh-CN';
+        heroRecognition.interimResults = false;
+        heroRecognition.onresult = event => {
+          const words = Array.from(event.results).filter(result => result.isFinal).map(result => result[0].transcript).join(' ');
+          aiStartInput.value = [aiStartInput.value.trim(), words].filter(Boolean).join(language === 'en' ? ' ' : '，');
+          aiStartInput.setCustomValidity('');
+        };
+        heroRecognition.onerror = () => showToast('无法使用麦克风，请检查浏览器权限。');
+        heroRecognition.onend = () => { heroRecognition = null; uiText(aiStartVoice, '🎙 语音说需求'); };
+        heroRecognition.start();
+        uiText(aiStartVoice, '正在聆听…');
       }
 
       function openAuthModal(action = null) {
@@ -1346,7 +1502,27 @@
         setValidity(propertyAddressInput,
           address.length >= 4 && /\d/.test(address) ? '' : '请填写小区名称和具体门牌号。'
         );
+        const floorLevel = listingForm.elements.namedItem('floorLevel');
+        const floorTotal = listingForm.elements.namedItem('floorTotal');
+        setValidity(floorLevel,
+          floorLevel.value && floorTotal.value && Number(floorLevel.value) > Number(floorTotal.value)
+            ? '所在楼层不能大于总楼层。'
+            : (Boolean(floorLevel.value) !== Boolean(floorTotal.value) ? '所在楼层和总楼层需要同时填写。' : '')
+        );
         return listingForm.reportValidity();
+      }
+
+      function readListingValues() {
+        const values = {
+          ownerName: ownerNameInput.value.trim(),
+          contactPhone: ownerPhoneInput.value.trim(),
+          address: propertyAddressInput.value.trim(),
+        };
+        for (const name of listingDetailNames) {
+          const value = listingForm.elements.namedItem(name).value.trim();
+          if (value) values[name] = listingNumericNames.has(name) ? Number(value) : value;
+        }
+        return values;
       }
 
       function openListingModal() {
@@ -1360,6 +1536,7 @@
         }
         previousFocus = document.activeElement;
         setFormMessage();
+        if (!ownerNameInput.value && currentUser?.name) ownerNameInput.value = currentUser.name;
         listingModal.hidden = false;
         document.body.style.overflow = 'hidden';
         ownerNameInput.focus();
@@ -1535,6 +1712,9 @@
       loginForm.addEventListener('reset', () => setPasswordVisible(false));
       authButton.addEventListener('click', () => openAuthModal());
       openListingModalButton.addEventListener('click', openListingModal);
+      document.getElementById('openListingNav').addEventListener('click', openListingModal);
+      document.getElementById('mobileSell').addEventListener('click', openListingModal);
+      document.getElementById('mobileWorkspace').addEventListener('click', () => window.Nexthome.openWorkspace?.('chat'));
       openAdminModalButton.addEventListener('click', openAdminModal);
       propertyInfoButton.addEventListener('click', () => {
         if (window.location.protocol === 'file:') {
@@ -1585,6 +1765,7 @@
           closeAuthModal();
           showToast(`欢迎回来，${result.user.username}`);
           if (action === 'listing') openListingModal();
+          else if (action === 'ai') startAiJourney(pendingAiPrompt || aiStartInput.value);
         } catch (error) {
           setLoginMessage(uiError(error, '登录失败，请稍后重试。'));
         } finally {
@@ -1671,9 +1852,10 @@
           updateAdminControls();
         }
       });
-      [ownerNameInput, ownerPhoneInput, propertyAddressInput].forEach(input => {
+      [...listingForm.elements].filter(element => element.matches('input, select')).forEach(input => {
         input.addEventListener('input', () => {
           setValidity(input, '');
+          setValidity(listingForm.elements.namedItem('floorLevel'), '');
           setFormMessage();
         });
       });
@@ -1688,11 +1870,7 @@
           const response = await fetch('/api/listings', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              ownerName: ownerNameInput.value.trim(),
-              contactPhone: ownerPhoneInput.value.trim(),
-              address: propertyAddressInput.value.trim(),
-            }),
+            body: JSON.stringify(readListingValues()),
           });
           const result = await response.json().catch(() => ({}));
           if (response.status === 401) updateAuthUI(null);
@@ -1702,7 +1880,7 @@
           // submitted form now so retrying a local sync cannot POST a duplicate.
           listingForm.reset();
           closeListingModal();
-          showToast('挂牌信息已提交，我们会尽快联系您。');
+          showToast('房源已保存，可在买卖工作台管理，也可以继续买房和看地图。');
           try { await loadProperties(); }
           catch { showToast('云端已保存；列表刷新失败，请刷新页面。'); }
           document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
@@ -1710,7 +1888,7 @@
           setFormMessage(uiError(error, '房源保存失败，请稍后重试。'));
         } finally {
           submitListingButton.disabled = false;
-          uiText(submitListingButton, '提交挂牌');
+          uiText(submitListingButton, '保存出售房源');
         }
       });
 
@@ -2050,8 +2228,16 @@
           results.forEach(entry => { entry.button.disabled = true; uiText(entry.note, '定位失败'); });
         }
       }
-      document.getElementById('openMap').addEventListener('click', () => {
+      function openMapView() {
         applyFilters(); const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.set('view', 'map'); url.hash = ''; navigate(url.pathname + url.search);
+      }
+      document.getElementById('openMap').addEventListener('click', openMapView);
+      document.getElementById('openMapNav').addEventListener('click', openMapView);
+      document.getElementById('headerMapButton').addEventListener('click', openMapView);
+      document.getElementById('mobileMap').addEventListener('click', openMapView);
+      document.getElementById('mobileBuy').addEventListener('click', () => {
+        if (new URL(location.href).searchParams.has('listing') || new URL(location.href).searchParams.get('view') === 'map') showResults();
+        document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
       });
       document.getElementById('closeMap').addEventListener('click', returnRoute);
       document.getElementById('backFromDetail').addEventListener('click', returnRoute);
@@ -2223,6 +2409,13 @@
       }
 
       document.getElementById('searchForm').addEventListener('submit', event => { event.preventDefault(); applyFilters(); document.getElementById('listings').scrollIntoView(); });
+      aiStartForm.addEventListener('submit', event => { event.preventDefault(); startAiJourney(aiStartInput.value); });
+      aiStartInput.addEventListener('input', () => aiStartInput.setCustomValidity(''));
+      aiStartVoice.addEventListener('click', startHeroRecognition);
+      document.querySelectorAll('[data-ai-example]').forEach(button => button.addEventListener('click', () => {
+        aiStartInput.value = language === 'en' ? button.dataset.aiExampleEn : button.dataset.aiExample;
+        aiStartInput.focus();
+      }));
       fields.forEach(field => field.addEventListener('change', applyFilters));
       document.querySelectorAll('[data-keyword]').forEach(button => button.addEventListener('click', () => { searchInput.value = button.dataset.keyword; applyFilters(); document.getElementById('listings').scrollIntoView(); }));
       document.getElementById('clearFilter').addEventListener('click', () => { fields.forEach(field => field.value = ''); searchInput.value = ''; applyFilters(); });
@@ -2262,5 +2455,6 @@
       };
     </script>
     <script src="/assets/advisor.js" defer></script>
+    <script src="/assets/mobile-app.js" defer></script>
   </body>
 </html>

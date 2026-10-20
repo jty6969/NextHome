@@ -181,6 +181,33 @@ test('user listing stores omitted detail fields as NULL and rejects invalid phon
   assert.equal(row.creator_role, 'user');
 });
 
+test('one signed-in account can create a detailed seller listing and still use buyer APIs', async () => {
+  const { database, env } = await createEnvironment();
+  const { cookie } = await login(env, '用户账号1');
+  const response = await request(env, '/api/listings', {
+    method: 'POST', cookie,
+    body: {
+      ownerName: '买卖通用账号', contactPhone: '13800138000', address: '统一入口小区 6号1202室',
+      bedrooms: 3, livingRooms: 2, bathrooms: 2, areaSqm: 108.5, totalPriceWan: 620,
+      orientation: '南北', floorLevel: 12, floorTotal: 18, decoration: '精装', elevator: '有电梯',
+    },
+  });
+  assert.equal(response.status, 201);
+  const { listing } = await response.json();
+  assert.equal(listing.unitPriceCalculated, true);
+  assert.equal(listing.bedrooms, 3);
+  assert.equal(listing.floorLevel, 12);
+  assert.equal(listing.elevator, '有电梯');
+  const row = database.prepare('SELECT * FROM listings WHERE id = ?').get(listing.id);
+  assert.equal(row.creator_account_id, 'seed-user-1');
+  assert.equal(row.area_sqm, 108.5);
+  assert.equal(row.total_price_wan, 620);
+  assert.equal((await request(env, '/api/advisor/state', { cookie })).status, 200);
+  const seller = await request(env, '/api/advisor/seller', { cookie });
+  assert.equal(seller.status, 200);
+  assert.ok((await seller.json()).listings.some(item => item.id === listing.id));
+});
+
 test('admin listing stores complete detail data and marks calculated unit price', async () => {
   const { database, env } = await createEnvironment();
   const { cookie } = await login(env, '管理员账号1');
