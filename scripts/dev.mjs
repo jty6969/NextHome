@@ -10,9 +10,11 @@ const remoteMode = process.argv.includes('--remote');
 const remoteUsername = process.env.NEXTHOME_REMOTE_USER || 'nexthome';
 const remotePassword = process.env.NEXTHOME_REMOTE_PASSWORD || '';
 if (remoteMode && remotePassword.length < 16) throw new Error('NEXTHOME_REMOTE_PASSWORD must contain at least 16 characters in remote mode.');
-const db = await openDatabase(path.join(root, process.argv.includes('--isolated') ? `.local/check-${Date.now()}.sqlite` : '.local/nexthome.sqlite'));
+const db = await openDatabase(process.env.NEXTHOME_DB_PATH || path.join(root, process.argv.includes('--isolated') ? `.local/check-${Date.now()}.sqlite` : '.local/nexthome.sqlite'));
+const localAIKey = process.env.DEEPSEEK_API_KEY?.trim() || await readFile(path.join(root, '.local/deepseek-api-key.txt'), 'utf8')
+  .then(value => value.trim()).catch(error => { if (error.code === 'ENOENT') return ''; throw error; });
 const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.webmanifest':'application/manifest+json', '.png':'image/png' };
-const env = { DB:d1(db), DEEPSEEK_API_KEY:process.env.DEEPSEEK_API_KEY || '', ASSETS:{
+const env = { DB:d1(db), DEEPSEEK_API_KEY:localAIKey, DEEPSEEK_MODEL:process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash', ASSETS:{
   async fetch(request) {
     let relative = new URL(request.url).pathname;
     if (relative === '/') relative = '/index.html';

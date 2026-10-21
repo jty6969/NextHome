@@ -1,3 +1,5 @@
+import { sellingAI, sellingState, patchSelling, assistantDraft, reviewSelling, confirmSelling } from './selling.js';
+import { deepseek } from './deepseek.js';
 // Buyer and seller collaboration: no client-writable transaction snapshots.
 const now = () => new Date().toISOString();
 export const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
@@ -146,10 +148,12 @@ async function ai(request, env, user, deps, payload) {
   if (['endpoint', 'apiKey', 'messages', 'model'].some(key => key in payload)) fail('CLIENT_AI_CONFIG_FORBIDDEN');
   const input = text(payload.message, 4000); if (!input) fail('EMPTY_MESSAGE');
   const language = payload.language === 'en' ? 'en' : 'zh';
+  if (payload.mode != null && !['buy', 'sell', 'analysis'].includes(payload.mode)) fail('INVALID_MODE');
   if (!env.DEEPSEEK_API_KEY) fail('AI_NOT_CONFIGURED', 503);
   const count = await stmt(env, "SELECT COUNT(*) AS n FROM buyer_events WHERE account_id = ? AND kind = 'ai_request' AND created_at > ?", user.id, new Date(Date.now() - 60000).toISOString()).first();
   if (count.n >= 10) fail('AI_RATE_LIMIT', 429);
   await event(env, user, 'ai_request', '');
+  if (payload.mode === 'sell') return deps.json(await sellingAI(env, user, payload, input, language));
   let data = await profile(env, user);
   if (payload.mode !== 'analysis') {
     const extracted = extractRequirements(input);
@@ -172,14 +176,8 @@ async function ai(request, env, user, deps, payload) {
     payload.mode === 'analysis' ? '' : `Return only one valid JSON object with this exact shape: {"reply":"your user-facing answer","profilePatch":{},"requirementsPatch":{}}. Extract only facts the user explicitly stated or corrected in the latest message. profilePatch may use ${JSON.stringify([...profileFields])}; requirementsPatch may use ${JSON.stringify([...requirementFields])}. Use numbers for numeric fields, booleans for firstHome/needElevator, strings for other fields, and omit unknown fields. The reply must still ask the next 1–2 useful questions or explain recommendations.`,
     JSON.stringify({ buyer: data, consultation: gate, memory: events, listings: chosen.map(p => ({ id: p.id, name: p.listingTitle || p.address, price: p.totalPriceWan, area: p.areaSqm, unitPrice: p.unitPriceWanPerSqm, bedrooms: p.bedrooms, elevator: p.elevator, floor: [p.floorLevel, p.floorTotal], metro: p.metro, source: p.source, isDemo: p.isDemo, highlights: p.highlights, compromise: p.compromise, surrounding: p.surrounding, community: p.communityInfo, priceHistory: p.priceHistory, priceHistorySynthetic:p.priceHistorySynthetic, sourceListingDate:p.sourceListingDate, daysOnMarket:p.currentDaysOnMarket })) }),
   ].filter(Boolean).join('\n');
-  let response;
-  try { response = await fetch('https://api.deepseek.com/chat/completions', { method: 'POST', signal: AbortSignal.timeout(30000), headers: { 'content-type': 'application/json', authorization: `Bearer ${env.DEEPSEEK_API_KEY}` }, body: JSON.stringify({ model: env.DEEPSEEK_MODEL || 'deepseek-chat', messages: [{ role: 'system', content: prompt }, ...history, { role: 'user', content: input }], temperature: 0.4 }) }); }
-  catch { fail('AI_UNAVAILABLE', 503); }
-  if (response.status === 402) fail('AI_BALANCE_REQUIRED', 503);
-  if (response.status === 401) fail('AI_CREDENTIAL_INVALID', 503);
-  if (!response.ok) fail('AI_UNAVAILABLE', 502);
-  const result = await response.json().catch(() => null); const rawAnswer = result?.choices?.[0]?.message?.content;
-  if (typeof rawAnswer !== 'string' || !rawAnswer.trim()) fail('AI_EMPTY_RESPONSE', 502);
+  const completion=await deepseek(env,{messages:[{role:'system',content:prompt},...history,{role:'user',content:input}],mode:payload.mode||'buy',requestId:payload.requestId,json:payload.mode!=='analysis',parse:content=>content});
+  const rawAnswer = completion.value;
   const structured = payload.mode === 'analysis' ? null : parseStructuredAdvisorAnswer(rawAnswer);
   let answer = structured?.reply || rawAnswer.trim();
   if (structured && (Object.keys(structured.profilePatch).length || Object.keys(structured.requirementsPatch).length)) {
@@ -191,7 +189,7 @@ async function ai(request, env, user, deps, payload) {
     if (listings.some(p => answer.includes(p.id))) answer = language === 'en' ? 'Before choosing listings, please clarify the missing household, funding, location, layout, or must-have requirements.' : '为了可靠地初筛房源，请先补充尚缺的家庭目的、资金方案、区域通勤、户型面积或必要条件。';
   }
   if (payload.mode !== 'analysis') await env.DB.batch(['user', 'assistant'].map((role, i) => stmt(env, 'INSERT INTO advisor_chats (account_id, role, content, created_at) VALUES (?, ?, ?, ?)', user.id, role, i ? answer : input, now())));
-  return deps.json({ content: answer, ...data, gate });
+  return deps.json({ content: answer, requestId:completion.requestId, ...data, gate });
 }
 
 export async function handleAdvisor(request, env, user, deps) {
@@ -199,6 +197,15 @@ export async function handleAdvisor(request, env, user, deps) {
   try {
     if ((route === '/api/ai' || route === '/api/advisor/ai') && method === 'POST') return await ai(request, env, user, deps, await body(request));
     if (route === '/api/advisor/state' && method === 'GET') return deps.json(await state(env, user));
+    if (route === '/api/advisor/selling' && method === 'GET') return deps.json(await sellingState(env, user, url.searchParams.get('propertyId') || 'primary'));
+    if (route === '/api/advisor/selling' && method === 'PATCH') return deps.json(await patchSelling(env, user, await body(request)));
+    if (route === '/api/advisor/selling/review' && method === 'POST') return deps.json(await reviewSelling(env,user,await body(request)));
+    if (route === '/api/advisor/selling/confirm' && method === 'POST') return deps.json(await confirmSelling(env,user,await body(request)));
+    if (route === '/api/advisor/draft' && ['GET', 'PUT'].includes(method)) {
+      const payload = method === 'PUT' ? await body(request) : {};
+      if (method === 'PUT' && typeof payload.draft !== 'string') fail('INVALID_INPUT');
+      return deps.json(await assistantDraft(env, user, url.searchParams.get('mode'), method === 'PUT' ? payload.draft : undefined, url.searchParams.get('propertyId') || 'primary'));
+    }
     if (route === '/api/advisor/profile' && method === 'PATCH') {
       const data = await body(request), p = cleanFields(data.profile || {}, profileFields), r = cleanFields(data.requirements || {}, requirementFields);
       if (Object.keys(data).some(k => !['profile', 'requirements'].includes(k))) fail('INVALID_PROFILE');
@@ -321,5 +328,5 @@ export async function handleAdvisor(request, env, user, deps) {
       return deps.json({ deal: await stmt(env, 'SELECT * FROM buyer_deals WHERE id = ?', d.id).first() });
     }
     return deps.json({ error: 'METHOD_NOT_ALLOWED' }, 405);
-  } catch (e) { if (e.status) return deps.json({ error: e.message }, e.status); throw e; }
+  } catch (e) { if (e.status) return deps.json({ error: e.message, ...(e.requestId?{requestId:e.requestId}:{}) }, e.status); throw e; }
 }

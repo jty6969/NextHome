@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0e2a4c" />
+    <meta name="theme-color" content="#26796e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NextHome" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -11,9 +11,9 @@
     <link rel="apple-touch-icon" href="/assets/app-icon-180.png" />
     <meta
       name="description"
-      content="Nexthome 房源浏览原型，支持按区域、户型、价格、面积等条件查找和比较房源。"
+      content="NextHome AI 购房助手，通过对话梳理需求，查找房源、预约看房并管理购房流程。"
     />
-    <title>Nexthome｜房源库</title>
+    <title>NextHome｜AI 购房助手</title>
     <link rel="stylesheet" href="/assets/advisor.css" />
     <style>
       :root {
@@ -497,20 +497,37 @@
         .detail-photo { height: 240px; flex-basis: 100%; }
       }
     </style>
+    <link rel="stylesheet" href="/assets/home.css" />
     <link rel="stylesheet" href="/assets/mobile-app.css" />
   </head>
   <body>
+    <aside class="home-sidebar" id="homeSidebar" aria-label="助手导航">
+      <a class="rail-brand" href="/" aria-label="NextHome 首页"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg></a>
+      <button class="rail-button rail-toggle" id="sidebarToggle" type="button" aria-label="展开侧边栏" aria-expanded="false" aria-controls="sidebarNav"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m4-11 3 3-3 3"/></svg><span class="rail-label">展开侧边栏</span></button>
+      <nav id="sidebarNav" class="rail-nav" aria-label="助手导航">
+        <button class="rail-button" type="button" data-home-action="new" aria-label="新对话" aria-current="page"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-7M16 3l5 5-9 9-5 1 1-5Z"/></svg><span class="rail-label">新对话</span></button>
+        <button class="rail-button" type="button" data-home-action="history" aria-label="历史记录"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6m3-4v6l4 2"/></svg><span class="rail-label">历史记录</span></button>
+        <button class="rail-button" type="button" data-home-action="list" aria-label="手动查找房源"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 8-7 8 7v3M3 10v10h7"/><circle cx="15.5" cy="16" r="4.5"/><path d="m19 19 3 3"/></svg><span class="rail-label">手动查找房源</span></button>
+        <button class="rail-button" type="button" data-home-action="map" aria-label="地图找房"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16"/></svg><span class="rail-label">地图找房</span></button>
+        <button class="rail-button" type="button" data-home-action="viewings" aria-label="预约看房"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 5 3 3 5-5"/></svg><span class="rail-label">预约看房</span></button>
+      </nav>
+      <button class="rail-button rail-settings" type="button" data-home-action="settings" aria-label="设置"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3 1-1h4l1 3 3 1 3-1 2 4-2 2v3l2 2-2 4-3-1-3 1-1 3h-4l-1-3-3-1-3 1-2-4 2-2v-3L1 9l2-4 3 1Z" transform="translate(1 0) scale(.92)"/><circle cx="12" cy="12" r="3"/></svg><span class="rail-label">设置</span></button>
+    </aside>
     <header class="site-header">
       <div class="header-inner">
-        <div class="brand"><span class="brand-mark">N</span><span>Nexthome</span></div>
-        <nav aria-label="主导航">
-          <a class="active" href="#listings">买房</a>
+        <div class="brand"><span>NextHome</span><span class="brand-caption">AI 购房助手</span></div>
+        <nav class="legacy-nav" aria-label="主导航">
+          <a class="active" href="#listings">二手房</a>
+          <a href="#">新房</a>
+          <a href="#">小区</a>
+          <a href="#">房产资讯</a>
           <button id="openMapNav" type="button">地图找房</button>
           <button id="openListingNav" type="button">我要卖房</button>
         </nav>
         <div class="header-actions">
+          <button class="listing-button admin-entry" id="openAdminModal" type="button" hidden>手动录入房源</button>
           <div class="language-switch" id="languageSwitch">
-            <button class="ghost-button" id="languageButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="languageMenu">切换语言</button>
+            <button class="ghost-button" id="languageButton" type="button" aria-label="切换语言" aria-haspopup="menu" aria-expanded="false" aria-controls="languageMenu"><span data-language-label="zh-CN">中文</span><span class="language-divider" aria-hidden="true">/</span><span data-language-label="en">EN</span></button>
             <div class="language-menu" id="languageMenu" hidden>
               <div class="language-menu-inner" role="menu" aria-label="切换语言">
                 <button class="language-option" type="button" role="menuitemradio" data-language="zh-CN" aria-checked="true" tabindex="-1">简体中文</button>
@@ -519,10 +536,9 @@
             </div>
           </div>
           <button class="ghost-button" id="propertyInfoButton" type="button">买房</button>
-          <button class="ghost-button" id="headerMapButton" type="button">地图</button>
-          <button class="listing-button admin-entry" id="openAdminModal" type="button" hidden>手动录入房源</button>
-          <button class="listing-button" id="openListingModal" type="button">我要卖房</button>
-          <button class="ghost-button account-button" id="authButton" type="button">登录 / 注册</button>
+          <button class="listing-button" id="openListingModal" type="button">挂牌</button>
+          <button class="ghost-button account-button" id="authButton" type="button">登录</button>
+          <button class="ghost-button" id="headerMapButton" type="button" hidden>地图</button>
         </div>
       </div>
     </header>
@@ -712,7 +728,45 @@
     </div>
 
     <main id="homePage">
-      <section class="hero">
+      <section class="assistant-page" id="assistantPage" aria-labelledby="homeTitle">
+        <div class="assistant-center">
+          <div class="assistant-mode" id="assistantMode" role="tablist" aria-label="助手模式" data-mode="buy">
+            <span class="assistant-mode-pill" aria-hidden="true"></span>
+            <button id="sellMode" type="button" role="tab" aria-selected="false" aria-controls="assistantContent" tabindex="-1" data-mode="sell">卖房</button>
+            <button id="buyMode" type="button" role="tab" aria-selected="true" aria-controls="assistantContent" tabindex="0" data-mode="buy">买房</button>
+          </div>
+          <div id="assistantContent" role="tabpanel" aria-labelledby="buyMode">
+          <div class="welcome" id="homeWelcome">
+            <div class="welcome-inner">
+            <svg class="home-symbol line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="m6 23 15-12 15 12v19H25V30h-8v12H6Zm30-20 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/></svg>
+            <h1 id="homeTitle">下一站，理想的家</h1>
+            <p class="home-subtitle">从一个问题开始，找到适合你的家</p>
+            </div>
+          </div>
+          <div class="home-conversation-region">
+          <div class="home-conversation" id="homeConversation" role="log" tabindex="0" aria-label="AI 对话" aria-live="polite" hidden></div>
+          </div>
+          <form class="home-composer" id="homeComposer" aria-label="询问购房助手">
+            <div class="composer-shortcuts">
+              <button class="icon-button" id="homePlus" type="button" aria-label="打开快捷功能" aria-haspopup="menu" aria-expanded="false" aria-controls="homeQuickMenu"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+              <div class="home-popover home-quick-menu" id="homeQuickMenu" role="menu" aria-label="快捷功能" hidden>
+                <button type="button" role="menuitem" data-home-action="profile">编辑购房需求</button>
+                <button type="button" role="menuitem" data-home-action="workspace">购房与交易工作台</button>
+                <button type="button" role="menuitem" data-home-action="listing">挂牌</button>
+              </div>
+            </div>
+            <textarea id="homeInput" rows="1" maxlength="4000" aria-label="询问购房助手" placeholder="询问购房助手"></textarea>
+            <button class="icon-button voice-button" id="homeVoice" type="button" aria-label="语音输入" aria-pressed="false"><svg class="line-icon mic-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg><svg class="line-icon stop-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+            <button class="icon-button send-button" id="homeSend" type="submit" aria-label="发送" hidden><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg></button>
+          </form>
+          <p class="home-hint">描述预算、区域或通勤需求，让找房更有方向</p>
+          <p class="home-status" id="homeStatus" role="status" hidden></p>
+          <div id="sellerProfile" hidden></div>
+          </div>
+        </div>
+        <p class="home-footnote">NextHome · 让每一步购房决定更清晰</p>
+      </section>
+      <section class="hero" id="propertySearch" hidden>
         <div class="hero-inner">
           <span class="hero-kicker">AI 全程购房助手</span>
           <h1>不用填表，直接告诉 AI 你想买什么家</h1>
@@ -734,7 +788,7 @@
         </div>
       </section>
 
-      <section class="content" id="listings">
+      <section class="content" id="listings" hidden>
         <div id="localSyncPanel" class="filter-panel" hidden aria-live="polite" style="display:block">
           <p id="localSyncMessage"></p>
           <button class="dialog-cancel" id="retryLocalSync" type="button">重试本地同步</button>
@@ -875,6 +929,17 @@
       // Only interface copy is bound for translation. Form values, option values,
       // listing records and session state never pass through the translation layer.
       const englishCopy = {
+        'NextHome｜AI 购房助手': 'NextHome | AI Home Advisor',
+        'NextHome AI 购房助手，通过对话梳理需求，查找房源、预约看房并管理购房流程。': 'NextHome AI home advisor: clarify your needs, find properties, book viewings and manage your home buying journey.',
+        '助手导航': 'Assistant navigation', 'NextHome 首页': 'NextHome home', '展开侧边栏': 'Expand sidebar',
+        'AI 购房助手': 'AI home advisor', '新对话': 'New chat', '历史记录': 'History', '手动查找房源': 'Find properties',
+        '卖房': 'Sell', '买房': 'Buy', '助手模式': 'Assistant mode',
+        '预约看房': 'Book a viewing', '设置': 'Settings', '下一站，理想的家': 'Your next stop. A place to call home.',
+        '从一个问题开始，找到适合你的家': 'One question closer to the right home.', 'AI 对话': 'AI conversation',
+        '询问购房助手': 'Ask your home advisor', '打开快捷功能': 'Open quick actions', '快捷功能': 'Quick actions',
+        '编辑购房需求': 'Edit buyer brief', '购房与交易工作台': 'Home buying workspace', '语音输入': 'Voice input', '发送': 'Send',
+        '描述预算、区域或通勤需求，让找房更有方向': 'Share your budget, area or commute. Find a clearer way home.',
+        'NextHome · 让每一步购房决定更清晰': 'NextHome · Clarity at every step of your home journey',
         '来源': 'Source', '采集时间': 'Collected on', '挂牌时长': 'Days listed', '数据说明': 'Data note',
         '房源详情': 'Property details', '返回列表': 'Back to results', '返回地图': 'Back to map', '查看详情': 'View details',
         '暂无图片': 'No image available', '暂无信息': 'No information available', '重试': 'Retry', '关闭地图': 'Close map',
@@ -1098,6 +1163,7 @@
         }
         for (const [input, message] of validityBindings) input.setCustomValidity(translateUI(message));
         languageOptions.forEach(option => option.setAttribute('aria-checked', String(option.dataset.language === next)));
+        languageButton.querySelectorAll('[data-language-label]').forEach(label => label.classList.toggle('selected-language', label.dataset.languageLabel === next));
         document.dispatchEvent(new Event('languagechange'));
       }
       function toggleLanguageMenu(open, focus = false) {
@@ -1362,7 +1428,14 @@
       authButton.disabled = false;
       const publicSiteUrl = 'https://qiju-homes.ivanyuanxh.chatgpt.site';
       if (window.location.protocol === 'file:') {
-        window.location.replace(`${publicSiteUrl}/#listings`);
+        window.location.replace(`${publicSiteUrl}/`);
+      } else {
+        // Old file shortcuts used this fragment as the site's default entry.
+        const entry = new URL(window.location.href);
+        if (entry.hash === '#listings' && !entry.searchParams.has('view') && !entry.searchParams.has('listing')) {
+          entry.hash = '';
+          history.replaceState(history.state, '', entry.pathname + entry.search);
+        }
       }
 
       function roleLabel(role) {
@@ -1389,7 +1462,7 @@
           uiText(authButton, `${currentUser.username} · ${roleLabel(currentUser.role)}`);
           uiAttribute(authButton, 'title', '查看账号或安全退出');
         } else {
-          uiText(authButton, '登录 / 注册');
+          uiText(authButton, '登录');
           uiAttribute(authButton, 'title', '');
         }
       }
@@ -1527,7 +1600,7 @@
 
       function openListingModal() {
         if (window.location.protocol === 'file:') {
-          window.location.href = `${publicSiteUrl}/#listings`;
+          window.location.href = `${publicSiteUrl}/`;
           return;
         }
         if (!currentUser) {
@@ -1710,7 +1783,10 @@
         setPasswordVisible(loginPasswordInput.type === 'password');
       });
       loginForm.addEventListener('reset', () => setPasswordVisible(false));
-      authButton.addEventListener('click', () => openAuthModal());
+      authButton.addEventListener('click', () => {
+        if (currentUser && window.NexthomeHome) window.NexthomeHome.toggleAccount();
+        else openAuthModal();
+      });
       openListingModalButton.addEventListener('click', openListingModal);
       document.getElementById('openListingNav').addEventListener('click', openListingModal);
       document.getElementById('mobileSell').addEventListener('click', openListingModal);
@@ -1718,10 +1794,10 @@
       openAdminModalButton.addEventListener('click', openAdminModal);
       propertyInfoButton.addEventListener('click', () => {
         if (window.location.protocol === 'file:') {
-          window.location.href = `${publicSiteUrl}/#listings`;
+          window.location.href = `${publicSiteUrl}/?view=list`;
           return;
         }
-        if (new URL(location.href).searchParams.has('listing')) showResults();
+        showResults();
         document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
       });
       closeListingModalButton.addEventListener('click', closeListingModal);
@@ -2030,11 +2106,11 @@
         history.replaceState(null, '', url.pathname + url.search); renderRoute(true);
       }
       function showResults() {
-        const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.delete('view'); url.hash = '';
+        const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.set('view', 'list'); url.hash = '';
         navigate(url.pathname + url.search);
       }
       document.querySelector('nav a[href="#listings"]').addEventListener('click', event => {
-        if (!detailPage.hidden) { event.preventDefault(); showResults(); document.getElementById('listings').scrollIntoView({ behavior: 'smooth' }); }
+        event.preventDefault(); showResults(); document.getElementById('listings').scrollIntoView({ behavior: 'smooth' });
       });
       function renderDetail(id) {
         detailContent.replaceChildren();
@@ -2080,12 +2156,17 @@
       }
       function mapBackground(inert) {
         homePage.inert = inert; document.querySelector('.footer').inert = inert;
-        document.querySelectorAll('.site-header nav, .header-actions > button').forEach(element => element.inert = inert);
+        document.querySelectorAll('.home-sidebar, .site-header nav, .header-actions > button').forEach(element => element.inert = inert);
       }
       function renderRoute(focus = false) {
         const url = new URL(location.href), id = url.searchParams.get('listing');
         const showMap = !id && url.searchParams.get('view') === 'map';
         homePage.hidden = Boolean(id); detailPage.hidden = !id;
+        const listView = showMap || url.searchParams.get('view') === 'list' || url.hash === '#listings';
+        document.getElementById('assistantPage').hidden = Boolean(id) || listView;
+        document.getElementById('propertySearch').hidden = !listView;
+        document.getElementById('listings').hidden = !listView;
+        document.querySelector('.footer').hidden = !id && !listView;
         uiText(document.getElementById('backFromDetail'), url.searchParams.get('view') === 'map' ? '返回地图' : '返回列表');
         if (id) { renderDetail(id); if (focus) { window.scrollTo?.({ top: 0, left: 0, behavior: 'instant' }); document.getElementById('backFromDetail').focus({ preventScroll: true }); } }
         if (showMap && mapModal.hidden) {
@@ -2095,6 +2176,7 @@
           rememberMapView(); mapRun++; mapModal.hidden = true; document.body.style.overflow = ''; mapBackground(false);
           if (focus && !id) (mapFocus?.isConnected ? mapFocus : document.getElementById('openMap')).focus();
         }
+        document.dispatchEvent(new CustomEvent('nexthome-route', { detail: { view: id ? 'detail' : showMap ? 'map' : listView ? 'list' : 'home' } }));
       }
       function visibleProperties() {
         const ids = new Set(cards.filter(card => !card.hidden).map(card => card.dataset.id));
@@ -2278,6 +2360,7 @@
           (card?.querySelector('.card-heading a') || document.getElementById('openMap')).focus({ preventScroll: true });
         }
       });
+      window.addEventListener('hashchange', () => renderRoute());
       renderRoute();
       function renderProperties(properties) {
         propertiesStatus = 'ready';
@@ -2450,11 +2533,15 @@
         getUser: () => currentUser, getListings: () => propertyRows, getLanguage: () => language, setLanguage,
         login: openAuthModal, closeLogin: closeAuthModal, refreshSession: loadSession,
         openProperty: id => navigate(propertyURL(id)),
+        showResults,
+        showHome: () => { const url = new URL(location.href); url.searchParams.delete('listing'); url.searchParams.delete('view'); url.hash = ''; navigate(url.pathname + url.search); },
         setFavorites: ids => { favorites.clear(); ids.forEach(id => favorites.add(id)); updateFavorites(); },
         favorites: () => [...favorites], toast: showToast,
       };
     </script>
     <script src="/assets/advisor.js" defer></script>
+    <script src="/assets/selling-profile.js" defer></script>
+    <script src="/assets/home.js" defer></script>
     <script src="/assets/mobile-app.js" defer></script>
   </body>
 </html>

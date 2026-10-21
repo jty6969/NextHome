@@ -156,6 +156,7 @@ test('AI fixes upstream and context, rejects client secrets, avoids duplicate us
   const result = await c.call('/api/advisor/ai', {message:'test question'}, c.buyer.cookie);
   assert.equal(result.status, 200); assert.doesNotMatch(result.data.content, /lshy-1/);
   assert.equal(captured.url, 'https://api.deepseek.com/chat/completions');
+  assert.equal(captured.payload.model, 'deepseek-flash');
   assert.equal(captured.payload.messages.filter(m=>m.content==='test question').length, 1);
   t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({
     reply:'我已经整理好你的主要条件，接下来确认首付即可。',

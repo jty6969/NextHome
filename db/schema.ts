@@ -94,6 +94,31 @@ export const advisorChats = sqliteTable('advisor_chats', {
   id: integer('id').primaryKey({ autoIncrement: true }), accountId: text('account_id').notNull(),
   role: text('role').notNull(), content: text('content').notNull(), createdAt: text('created_at').notNull(),
 }, t => [index('idx_advisor_chats_account').on(t.accountId, t.id)]);
+// Consultation modes are unrelated to account roles. A property key keeps future homes separate.
+export const sellerProperties = sqliteTable('seller_properties', {
+  accountId: text('account_id').notNull(), propertyId: text('property_id').notNull(),
+  fields: text('fields').notNull().default('{}'), pending: text('pending').notNull().default('{}'),
+  revision: integer('revision').notNull().default(0),
+  workflow: text('workflow').notNull().default('{}'),
+}, t => [uniqueIndex('idx_seller_property').on(t.accountId, t.propertyId)]);
+export const sellerListingDrafts = sqliteTable('seller_listing_drafts', {
+  id: text('id').primaryKey(), accountId: text('account_id').notNull().references(() => accounts.id),
+  propertyId: text('property_id').notNull(), fields: text('fields').notNull(), sourceRevision: integer('source_revision').notNull(),
+  createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(),
+}, t => [uniqueIndex('idx_private_listing_property').on(t.accountId, t.propertyId)]);
+export const sellerChats = sqliteTable('seller_chats', {
+  id: integer('id').primaryKey({ autoIncrement: true }), accountId: text('account_id').notNull(), propertyId: text('property_id').notNull(),
+  role: text('role').notNull(), content: text('content').notNull(), createdAt: text('created_at').notNull(),
+}, t => [index('idx_seller_chats_property').on(t.accountId, t.propertyId, t.id)]);
+// Committed together with seller fields and chat rows; retained for response-loss retries.
+export const sellerMessageReceipts = sqliteTable('seller_message_receipts', {
+  accountId: text('account_id').notNull().references(() => accounts.id), propertyId: text('property_id').notNull(),
+  requestId: text('request_id').notNull(), inputHash: text('input_hash').notNull(),
+  content: text('content').notNull(), saved: integer('saved').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('idx_seller_message_request').on(t.accountId, t.propertyId, t.requestId)]);
+export const assistantDrafts = sqliteTable('assistant_drafts', {
+  accountId: text('account_id').notNull(), mode: text('mode').notNull(), content: text('content').notNull().default(''),
+}, t => [uniqueIndex('idx_assistant_draft').on(t.accountId, t.mode)]);
 export const buyerThreads = sqliteTable('buyer_threads', {
   id: text('id').primaryKey(), listingId: text('listing_id').notNull(),
   buyerId: text('buyer_id').notNull(), sellerId: text('seller_id').notNull(), createdAt: text('created_at').notNull(),
