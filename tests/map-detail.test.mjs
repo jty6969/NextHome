@@ -3,20 +3,24 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import worker from '../worker/app.js';
+import { fakeBaidu } from './baidu-fixture.mjs';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const mapProviderSource=await readFile(new URL('../assets/map-provider.js',import.meta.url),'utf8');
 const tick = () => new Promise(resolve => setTimeout(resolve, 50));
+const citySource = await readFile(new URL('../assets/city-navigation.js', import.meta.url), 'utf8');
 const response = (result, status = 200) => ({ ok: status < 400, status, json: async () => result });
 const rows = [
   { id: 'real-id-1', address: '原始地址一', listingTitle: '原始标题', images: ['/assets/home-1.png'], totalPriceWan: 420, areaSqm: 110, bedrooms: 3, longitude: 121.5, latitude: 31.2, coordinateSystem: 'gcj02', decoration: '原装修', ownerName: '原联系人', contactPhone: '原电话' },
   { id: 'real-id-2', address: '原始地址二', totalPriceWan: 200, areaSqm: 70, longitude: 121.5, latitude: 31.2, coordinateSystem: 'gcj02' },
   { id: 'missing-address' },
 ];
-async function page({ url = 'https://nexthome.test/', properties = rows, key = true, stored, handler, geocodes } = {}) {
+async function page({ url = 'https://nexthome.test/', properties = rows, key = true, stored, handler, geocodes, provider='amap' } = {}) {
   const errors = [], markers = [], geocodeCalls = [], maps = [], requests = [];
   const console = new VirtualConsole(); console.on('jsdomError', error => errors.push(error));
   const dom = new JSDOM(html, { url, runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: console, beforeParse(window) {
     window.scrollTo = () => {}; window.HTMLElement.prototype.scrollIntoView = () => {};
+    if(provider==='baidu'){window.__fakeBaidu=fakeBaidu(window);window.BMapGL=window.__fakeBaidu.sdk;window.eval(mapProviderSource);}
     if (stored) { window.sessionStorage.setItem('nexthome.results', JSON.stringify(stored)); window.localStorage.setItem('nexthome.favorites', '["real-id-1"]'); }
     class Point { constructor(lng, lat) { this.lng = lng; this.lat = lat; } getLng() { return this.lng; } getLat() { return this.lat; } }
     window.AMap = {
@@ -44,7 +48,7 @@ async function page({ url = 'https://nexthome.test/', properties = rows, key = t
       const result = await handler?.(url, options); if (result) return result;
       if (url === '/api/listings') return response({ table: properties });
       if (url === '/api/auth/session') return response({ user: { id: 'same-user', username: '原用户', role: 'user' } });
-      if (url === '/api/map/config') return response({ key: key ? 'in-memory-test-key' : '', ready: key });
+      if (url === '/api/map/config') return response({ provider,key: key ? 'in-memory-test-key' : '', ready: key });
       throw new Error(`Unexpected request ${url}`);
     };
   } });
@@ -52,6 +56,22 @@ async function page({ url = 'https://nexthome.test/', properties = rows, key = t
   const document = dom.window.document, get = id => document.getElementById(id);
   return { dom, document, get, errors, markers, geocodeCalls, maps, requests, choose: lang => document.querySelector(`[data-language="${lang}"]`).click(), close: () => dom.window.close() };
 }
+
+test('city selection filters both list and map without changing source records', async () => {
+  const properties=[{...rows[0],city:'上海'},{...rows[1],city:'北京'}];
+  const p=await page({properties});
+  try {
+    const w=p.dom.window;w.HTMLDialogElement.prototype.close=function(){this.open=false;};w.eval(citySource);
+    [...p.document.querySelectorAll('.city-choices button')].find(b=>b.textContent==='北京').click();
+    assert.equal(p.get('resultCount').textContent,'1');
+    p.get('openMap').click();await tick();
+    assert.equal(p.get('mapResults').children.length,1);
+    assert.match(p.get('mapResults').textContent,/原始地址二/);
+    assert.equal(properties[0].city,'上海');
+    [...p.document.querySelectorAll('.city-choices button')].find(b=>b.textContent==='全部城市').click();await tick();
+    assert.equal(p.get('mapResults').children.length,2);
+  }finally{p.close();}
+});
 
 test('card image/title use stable links; favorites never navigate; details preserve raw/missing data and list/session state', async () => {
   const p = await page();
@@ -80,6 +100,34 @@ test('card image/title use stable links; favorites never navigate; details prese
     titleLink.click(); p.document.querySelector('nav a[href="#listings"]').click(); assert.equal(p.get('homePage').hidden, false);
     assert.deepEqual(p.errors, []);
   } finally { p.close(); }
+});
+
+test('Baidu uses official coordinate conversion, preserves duplicate pins and opens existing detail routes',async()=>{
+  const original=JSON.stringify(rows),p=await page({provider:'baidu',url:'https://nexthome.test/?view=map'});
+  try{
+    assert.equal(p.document.querySelectorAll('.map-pin').length,2);
+    const fake=p.dom.window.__fakeBaidu;
+    assert.equal(fake.conversions.length,2);assert.ok(fake.conversions.every(c=>c.from===3&&c.to===5));
+    const pins=[...p.document.querySelectorAll('.map-pin')];assert.notEqual(pins[0].parentElement.style.left,pins[1].parentElement.style.left);
+    pins[0].click();assert.equal(p.document.querySelector('.map-popup h3').textContent,'原始标题');
+    p.document.querySelector('.map-popup a.surface-button').click();assert.equal(p.get('detailPage').hidden,false);
+    p.get('backFromDetail').click();await tick();assert.equal(p.get('mapModal').hidden,false);
+    p.choose('en');await tick();assert.match(p.get('mapStatus').textContent,/2 of 3/);assert.equal(JSON.stringify(rows),original);assert.deepEqual(p.errors,[]);
+  }finally{p.close();}
+});
+
+test('Baidu keeps native BD09 coordinates, geocodes detailed addresses and refuses district-only guesses',async()=>{
+  const p=await page({provider:'baidu',properties:[
+    {id:'native',longitude:121.5,latitude:31.2,coordinateSystem:'bd09'},
+    {id:'geocoded',address:'测试路12号',city:'上海'},
+    {id:'ambiguous',address:'浦东新区'},
+  ]});
+  try{
+    p.get('openMap').click();await tick();
+    assert.equal(p.document.querySelectorAll('.map-pin').length,2);
+    assert.equal(p.dom.window.__fakeBaidu.conversions.length,0);assert.equal(p.dom.window.__fakeBaidu.geocodes.length,1);
+    assert.match(p.get('mapResults').textContent,/按原始地址定位|结果不明确/);assert.deepEqual(p.errors,[]);
+  }finally{p.close();}
 });
 
 test('map uses filtered results, independent markers at original shared coordinates, popup image/name/detail routes, and returns to map', async () => {

@@ -150,20 +150,22 @@ test('AI fixes upstream and context, rejects client secrets, avoids duplicate us
   const c = await setup(t); c.env.DEEPSEEK_API_KEY='TEST_ONLY'; let captured;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     captured={url,payload:JSON.parse(options.body)};
-    return new Response(JSON.stringify({choices:[{message:{content:'[lshy-1] buy it'}}]}));
+    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({reply:'[lshy-1] buy it'})}}]}));
   });
   assert.equal((await c.call('/api/advisor/ai', {endpoint:'https://evil.test',message:'test'}, c.buyer.cookie)).status, 400);
   const result = await c.call('/api/advisor/ai', {message:'test question'}, c.buyer.cookie);
   assert.equal(result.status, 200); assert.doesNotMatch(result.data.content, /lshy-1/);
   assert.equal(captured.url, 'https://api.deepseek.com/chat/completions');
   assert.equal(captured.payload.model, 'deepseek-flash');
-  assert.equal(captured.payload.messages.filter(m=>m.content==='test question').length, 1);
+  assert.equal(captured.payload.messages.length,2);assert.equal(JSON.parse(captured.payload.messages[1].content).currentUserMessage,'test question');
   t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({
     reply:'我已经整理好你的主要条件，接下来确认首付即可。',
     profilePatch:{city:'杭州',workAddress:'滨江区物联网街',purpose:'自住'},
     requirementsPatch:{roomCount:3,minArea:105,needElevator:true,surroundingReq:'公园和商场'},
+    profileEvidence:{city:'杭州',workAddress:'滨江区物联网街',purpose:'自住'},
+    requirementsEvidence:{roomCount:'3室',minArea:'至少105平方米',needElevator:'需要电梯',surroundingReq:'公园和商场'},
   })}}]})));
-  const natural=await c.call('/api/advisor/ai',{message:'我们平时生活比较安静，其他情况就按刚才聊的整理。'},c.buyer.cookie);
+  const natural=await c.call('/api/advisor/ai',{message:'杭州自住，滨江区物联网街上班，3室，至少105平方米，需要电梯，附近有公园和商场。'},c.buyer.cookie);
   assert.equal(natural.status,200);assert.equal(natural.data.profile.city,'杭州');assert.equal(natural.data.profile.workAddress,'滨江区物联网街');
   assert.equal(natural.data.requirements.roomCount,3);assert.equal(natural.data.requirements.minArea,105);assert.equal(natural.data.requirements.needElevator,true);
   assert.equal(natural.data.content,'我已经整理好你的主要条件，接下来确认首付即可。');
@@ -172,6 +174,48 @@ test('AI fixes upstream and context, rejects client secrets, avoids duplicate us
   delete c.env.DEEPSEEK_API_KEY;
   assert.equal((await c.call('/api/advisor/ai', {message:'test'}, c.buyer.cookie)).status, 503);
 });
+test('buyer patches require current evidence, hypotheses do not change budgets, and malformed replies write no facts',async t=>{
+  const c=await setup(t);c.env.DEEPSEEK_API_KEY='TEST_ONLY';
+  await c.call('/api/advisor/profile',{profile:{budget:500}},c.buyer.cookie,'PATCH');
+  const respond=value=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(value)}}]}));
+  t.mock.method(globalThis,'fetch',async()=>respond({reply:'可以做假设比较，原预算不变。',profilePatch:{budget:600,city:'杭州'},profileEvidence:{budget:'预算600万元',city:'杭州'}}));
+  const hypothetical=await c.call('/api/advisor/ai',{message:'如果预算600万元，可以看看吗？'},c.buyer.cookie);
+  assert.equal(hypothetical.status,200);assert.equal(hypothetical.data.profile.budget,500);assert.equal(hypothetical.data.profile.city,undefined);
+  t.mock.method(globalThis,'fetch',async()=>respond({reply:'这次按480万元上限整理。',profilePatch:{budget:480},profileEvidence:{budget:'预算改成480万元'}}));
+  const corrected=await c.call('/api/advisor/ai',{message:'预算改成480万元'},c.buyer.cookie);assert.equal(corrected.data.profile.budget,480);
+  const chats=c.db.prepare('SELECT COUNT(*) n FROM advisor_chats').get().n;
+  t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({choices:[{message:{content:'not structured JSON'}}]})));
+  const failed=await c.call('/api/advisor/ai',{message:'预算改成900万元'},c.buyer.cookie);assert.equal(failed.status,502);
+  const state=(await c.call('/api/advisor/state',undefined,c.buyer.cookie)).data;assert.equal(state.profile.budget,480);assert.equal(c.db.prepare('SELECT COUNT(*) n FROM advisor_chats').get().n,chats);
+});
+
+test('explicit exploration provides real examples without demanding a completed buyer profile',async t=>{
+  const c=await setup(t);c.env.DEEPSEEK_API_KEY='TEST_ONLY';
+  t.mock.method(globalThis,'fetch',async(url,options)=>{
+    const prompt=JSON.parse(options.body).messages[0].content;
+    assert.match(prompt,/EXPLORATION:/);assert.match(prompt,/lshy-1/);assert.match(prompt,/NOT personalized/);
+    return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({reply:'先看一个资料样本 [lshy-1]，不是个性化推荐。'})}}]}));
+  });
+  const result=await c.call('/api/advisor/ai',{message:'你直接先讲几个房子'},c.buyer.cookie);
+  assert.equal(result.status,200);assert.equal(result.data.gate.ready,false);assert.match(result.data.content,/lshy-1/);
+});
+
+test('a delayed buyer response preserves newer manual changes and analysis ignores incomplete intake',async t=>{
+  const c=await setup(t);c.env.DEEPSEEK_API_KEY='TEST_ONLY';let resolve,started;
+  const ready=new Promise(done=>started=done);
+  t.mock.method(globalThis,'fetch',async()=>{started();return new Promise(done=>resolve=done);});
+  const sending=c.call('/api/advisor/ai',{message:'预算500万元'},c.buyer.cookie);await ready;
+  await c.call('/api/advisor/profile',{profile:{budget:480}},c.buyer.cookie,'PATCH');
+  resolve(new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({reply:'请继续确认需求。',profilePatch:{budget:500},profileEvidence:{budget:'预算500万元'}})}}]})));
+  const result=await sending;assert.equal(result.data.profile.budget,480);
+  t.mock.method(globalThis,'fetch',async(url,options)=>{
+    const prompt=JSON.parse(options.body).messages[0].content;
+    assert.match(prompt,/Analyze the provided property directly/);assert.doesNotMatch(prompt,/Do not name or recommend any specific listing until/);
+    return new Response(JSON.stringify({choices:[{message:{content:'这套是演示资料，实际在售情况待核实。'}}]}));
+  });
+  assert.equal((await c.call('/api/advisor/ai',{mode:'analysis',listingId:'lshy-1',message:'介绍一下这套房'},c.buyer.cookie)).status,200);
+});
+
 test('legacy password hashes and bindings migrate once; sessions and confirmation snapshots stay archived', async t => {
   const c = await setup(t);
   // Build synthetic accounts in a temporary directory; never read local user data.

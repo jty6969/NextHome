@@ -1,6 +1,7 @@
 // The server is authoritative for readiness, including false elevator values.
 export const basicFields = ['city','district','community','address','areaSqm','layout','floorLevel','floorTotal','orientation','elevator','decoration','occupancy'];
-export const saleFields = ['reason','priceWan'];
+// The reason for selling is private and optional, not a condition for saving a draft.
+export const saleFields = ['priceWan'];
 export const requiredFields = [...basicFields, ...saleFields];
 export const unknown = value => typeof value === 'string' && /不确定|不清楚|不知道|暂不|待补充|可能|大概|也许|或|还是|\b(?:or|unknown|unsure|uncertain|maybe|approximately|not sure|prefer not|tbd)\b/i.test(value);
 export function listingValidation(fields, pending = {}) {

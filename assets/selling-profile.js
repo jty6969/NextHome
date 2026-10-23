@@ -7,7 +7,7 @@
       ['orientation','朝向','Orientation'],['elevator','是否有电梯','Elevator','boolean'],['decoration','装修情况','Decoration'],['occupancy','当前居住状态','Occupancy','occupancy'],
     ]],
     ['出售相关信息','Sale details',[
-      ['reason','出售原因','Reason for sale'],['priceWan','期望售价（万元人民币）','Asking price (CNY 10,000)','number'],
+      ['reason','出售原因（可选、仅草稿可见）','Reason for sale (optional, private)'],['priceWan','期望售价（万元人民币）','Asking price (CNY 10,000)','number'],
     ]],
   ];
   const tr = (zh,en)=>window.Nexthome.getLanguage()==='en'?en:zh;
@@ -49,7 +49,7 @@
       const section=node('fieldset');section.append(node('legend',tr(zh,en)));
       for(const [key,zhLabel,enLabel,type] of fields){
         const label=node('label',tr(zhLabel,enLabel),'listing-review-field');label.htmlFor=`listing-${key}`;
-        const input=node(type==='boolean'||type==='occupancy'?'select':'input');input.id=`listing-${key}`;input.dataset.listingField=key;input.required=true;
+        const input=node(type==='boolean'||type==='occupancy'?'select':'input');input.id=`listing-${key}`;input.dataset.listingField=key;input.required=key!=='reason';
         if(type==='boolean'||type==='occupancy'){
           const choices=type==='boolean'?[['','待补充','To add'],['true','有','Yes'],['false','无','No']]:[['','待补充','To add'],['自住','自住','Owner-occupied'],['空置','空置','Vacant'],['出租','出租','Rented']];
           for(const [value,zhText,enText]of choices){const option=node('option',tr(zhText,enText));option.value=value;input.append(option);}
@@ -75,7 +75,7 @@
     if(!form.reportValidity())return;
     const key=currentKey,owner=window.Nexthome.getUser()?.id;setBusy(true);error=null;message.textContent=tr('正在保存私密草稿…','Saving private draft…');
     try{
-      const fields={};body.querySelectorAll('[data-listing-field]').forEach(input=>{const k=input.dataset.listingField;fields[k]=input.tagName==='SELECT'&&k==='elevator'?input.value==='true':input.type==='number'?Number(input.value):input.value.trim();});
+      const fields={};body.querySelectorAll('[data-listing-field]').forEach(input=>{const k=input.dataset.listingField;fields[k]=k==='reason'&&!input.value.trim()?null:input.tagName==='SELECT'&&k==='elevator'?input.value==='true':input.type==='number'?Number(input.value):input.value.trim();});
       const latest=await hooks.confirm(fields,data.revision);
       if(key!==currentKey||owner!==window.Nexthome.getUser()?.id)return;
       data=latest;buffers.delete(key);error=null;

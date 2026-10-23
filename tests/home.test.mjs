@@ -300,6 +300,8 @@ test('listing review opens once, traps focus, retains edits across language and 
   const modal=p.get('listingReview');assert.equal(modal.hidden,false);assert.equal(p.get('listingReviewTitle').textContent,'挂牌信息');
   assert.equal(p.w.document.activeElement,modal.querySelector('.icon-button'));assert.equal(p.get('homePage').inert,true);
   assert.equal(p.get('listing-elevator').value,'false');
+  assert.equal(p.get('listing-reason').required,false);
+  assert.equal(p.get('listing-priceWan').required,true);
   p.get('listing-priceWan').value='520';p.get('listing-priceWan').dispatchEvent(new p.w.Event('input'));
   p.w.Nexthome.setLanguage('en');assert.equal(p.get('listing-priceWan').value,'520');assert.equal(p.get('listingReviewTitle').textContent,'Listing information');
   modal.querySelector('.icon-button').dispatchEvent(new p.w.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}));

@@ -42,3 +42,45 @@
   input, textarea, select { font-size: 16px; }
 }
 @media (max-width: 360px) { .header-inner .brand { font-size: 14px; } .app-menu summary { padding: 8px 6px; } }
+
+/* Phone navigation never reserves a rail beside the conversation. */
+.city-toolbar { display:flex; align-items:center; gap:12px; }
+.city-trigger,.mobile-menu-trigger { border:0; background:transparent; color:var(--navy); font:inherit; font-size:13px; min-height:44px; cursor:pointer; }
+.mobile-menu-trigger { display:none; }
+.account-separator { white-space:pre; }
+.navigation-sheet { width:min(460px,calc(100% - 32px)); max-height:80dvh; overflow:auto; padding:24px; border:1px solid var(--line); border-radius:24px; background:var(--canvas); color:var(--ink); box-shadow:var(--shadow); }
+.navigation-sheet::backdrop { background:#172e284d; }
+.navigation-sheet h2 { font-size:20px; margin:10px 0 20px; }
+.navigation-sheet p { font-size:13px; color:var(--muted); line-height:1.7; }
+.sheet-close { float:right; border:0; background:transparent; color:var(--navy); min-height:44px; font:inherit; }
+.city-choices,.navigation-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.navigation-choices { grid-template-columns:1fr 1fr; }
+.city-choices button,.navigation-choices button { min-height:46px; border:1px solid var(--line); border-radius:12px; color:var(--ink); background:white; font:inherit; font-size:14px; padding:8px; }
+.city-choices button[aria-pressed=true] { background:var(--navy); color:white; }
+@media(max-width:768px) {
+  :root,body.sidebar-expanded { --rail-width:0px; --header-height:108px; }
+  .home-sidebar { display:none; }
+  .site-header { margin-left:0; }
+  .header-inner { width:calc(100% - 32px); flex-wrap:wrap; gap:0 8px; align-content:center; }
+  .header-inner .brand { font-size:20px; }
+  .header-actions { margin-left:auto; flex-wrap:nowrap; gap:2px; }
+  .account-button {
+    display:block; flex:0 0 auto; width:max-content; max-width:min(108px,28vw);
+    min-height:40px; height:auto; padding:6px 8px; white-space:normal;
+    overflow:visible; overflow-wrap:anywhere; text-overflow:clip;
+    line-height:1.35; text-align:center;
+  }
+  .account-button .account-name,.account-button .account-role { display:block; }
+  .account-button .account-separator { display:none; }
+  .account-button .account-role { font-size:10px; color:var(--muted); }
+  #languageButton { font-size:11px; padding:0 4px; gap:2px; }
+  .app-menu summary { padding:8px; }
+  .city-toolbar { width:100%; justify-content:space-between; height:40px; }
+  .mobile-menu-trigger { display:block; }
+  #homePage,#detailPage,.footer { margin-left:0; }
+  #detailPage { width:calc(100% - 32px); margin-inline:auto; }
+  .assistant-page { padding:clamp(28px,7dvh,64px) 20px 64px; }
+  .assistant-page.has-conversation { padding-bottom:max(16px,env(safe-area-inset-bottom)); }
+  .has-conversation .home-footnote { display:none; }
+  .navigation-sheet { margin:auto auto max(16px,env(safe-area-inset-bottom)); }
+}

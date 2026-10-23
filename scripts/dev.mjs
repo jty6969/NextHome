@@ -6,6 +6,7 @@ import { openDatabase, d1, root } from './local-db.mjs';
 import { migrateVictor } from './migrate-victor.mjs';
 import { externalRequest, publicRequestOrigin, validRemoteAuthorization, remoteAccessCookie, validRemoteCookie } from './remote-access.mjs';
 import { developmentVersion } from './dev-version.mjs';
+import { loadLocalMapConfig } from './local-map-config.mjs';
 const remoteMode = process.argv.includes('--remote');
 const remoteUsername = process.env.NEXTHOME_REMOTE_USER || 'nexthome';
 const remotePassword = process.env.NEXTHOME_REMOTE_PASSWORD || '';
@@ -14,7 +15,7 @@ const db = await openDatabase(process.env.NEXTHOME_DB_PATH || path.join(root, pr
 const localAIKey = process.env.DEEPSEEK_API_KEY?.trim() || await readFile(path.join(root, '.local/deepseek-api-key.txt'), 'utf8')
   .then(value => value.trim()).catch(error => { if (error.code === 'ENOENT') return ''; throw error; });
 const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.webmanifest':'application/manifest+json', '.png':'image/png' };
-const env = { DB:d1(db), DEEPSEEK_API_KEY:localAIKey, DEEPSEEK_MODEL:process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash', ASSETS:{
+const env = { ...await loadLocalMapConfig(root), DB:d1(db), DEEPSEEK_API_KEY:localAIKey, DEEPSEEK_MODEL:process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash', ASSETS:{
   async fetch(request) {
     let relative = new URL(request.url).pathname;
     if (relative === '/') relative = '/index.html';

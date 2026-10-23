@@ -610,7 +610,13 @@ export default {
       if (url.pathname === '/api/listings' && request.method === 'GET') return await listListings(request, env);
       if (url.pathname === '/api/map/config' && request.method === 'GET') {
         // JS browser keys are public by design; the security code never leaves the Worker.
-        return json({ key: env.AMAP_PUBLIC_JS_KEY || '', ready: Boolean(env.AMAP_PUBLIC_JS_KEY && env.AMAP_SECURITY_JS_CODE),
+        const provider=['baidu','amap'].includes(env.MAP_PROVIDER)?env.MAP_PROVIDER:
+          env.AMAP_PUBLIC_JS_KEY&&env.AMAP_SECURITY_JS_CODE?'amap':env.BAIDU_PUBLIC_JS_KEY?'baidu':'amap';
+        if(provider==='baidu')return json({provider,key:env.BAIDU_PUBLIC_JS_KEY||'',ready:Boolean(env.BAIDU_PUBLIC_JS_KEY),
+          missing:env.BAIDU_PUBLIC_JS_KEY?[]:['BAIDU_PUBLIC_JS_KEY'],center:env.BAIDU_MAP_CENTER||null,
+          coordinateSystem:env.MAP_COORDINATE_SYSTEM||'',city:env.MAP_GEOCODE_CITY||''});
+        return json({ provider, key: env.AMAP_PUBLIC_JS_KEY || '', ready: Boolean(env.AMAP_PUBLIC_JS_KEY && env.AMAP_SECURITY_JS_CODE),
+          missing:['AMAP_PUBLIC_JS_KEY','AMAP_SECURITY_JS_CODE'].filter(key=>!env[key]),
           coordinateSystem: env.MAP_COORDINATE_SYSTEM || '', city: env.MAP_GEOCODE_CITY || '' });
       }
       if (url.pathname.startsWith('/_AMapService/') && request.method === 'GET') {

@@ -916,6 +916,7 @@
         </div>
         <p class="map-status" id="mapHelp">拖动地图或双指缩放；键盘方向键移动，+ / - 缩放。同址房源标记展开显示，坐标不变。</p>
         <p class="map-status" id="mapStatus" role="status" aria-live="polite"></p>
+        <p class="map-status" id="mapDomainHelp" hidden></p>
         <div class="map-layout">
           <div class="map-canvas" id="mapCanvas" tabindex="0" role="region" aria-label="房源位置地图"></div>
           <aside class="map-results"><h3>当前结果</h3><ol id="mapResults"></ol></aside>
@@ -925,6 +926,7 @@
 
     <footer class="footer">Nexthome 房源库</footer>
 
+    <script src="/assets/map-provider.js"></script>
     <script>
       // Only interface copy is bound for translation. Form values, option values,
       // listing records and session state never pass through the translation layer.
@@ -1459,7 +1461,11 @@
         }
         openAdminModalButton.hidden = currentUser?.role !== 'admin';
         if (currentUser) {
-          uiText(authButton, `${currentUser.username} · ${roleLabel(currentUser.role)}`);
+          uiBindings.delete(authButton);
+          const accountName = document.createElement('span'); accountName.className = 'account-name'; accountName.textContent = currentUser.username;
+          const accountSeparator = document.createElement('span'); accountSeparator.className = 'account-separator'; accountSeparator.textContent = ' · ';
+          const accountRole = document.createElement('span'); accountRole.className = 'account-role'; uiText(accountRole, roleLabel(currentUser.role));
+          authButton.replaceChildren(accountName, accountSeparator, accountRole);
           uiAttribute(authButton, 'title', '查看账号或安全退出');
         } else {
           uiText(authButton, '登录');
@@ -2088,7 +2094,7 @@
       function rememberMapView() {
         if (!map) return;
         const center = map.getCenter();
-        mapView = { center: [center.getLng(), center.getLat()], zoom: map.getZoom(), selected: popup?.propertyId };
+        mapView = { provider:mapConfig?.provider||'amap',center: [center.getLng(), center.getLat()], zoom: map.getZoom(), selected: popup?.propertyId };
         try { sessionStorage.setItem('nexthome.mapView', JSON.stringify(mapView)); } catch { /* Optional persistence. */ }
       }
       try { mapView = JSON.parse(sessionStorage.getItem('nexthome.mapView') || 'null'); } catch { /* Optional persistence. */ }
@@ -2189,7 +2195,17 @@
           const { response, result } = await readJSON('/api/map/config');
           if (!response.ok) throw new Error('地图加载失败，请重试。');
           mapConfig = result;
+          const domainHelp = document.getElementById('mapDomainHelp');
+          domainHelp.hidden = result.provider !== 'baidu' || ['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+          if (!domainHelp.hidden) uiText(domainHelp, () => language === 'en'
+            ? `If Baidu reports a Referer error, authorize this exact domain in the browser key whitelist: ${location.hostname}. Temporary URLs change after restarting the tunnel. Do not use a global wildcard.`
+            : `若出现百度 Referer 校验失败，请在浏览器端 Key 白名单中加入当前域名：${location.hostname}。临时入口重启后域名可能变化，不要设置为允许所有域名。`);
           if (!result.ready || !result.key) throw new Error('地图服务尚未配置，请联系管理员。');
+          if(mapView && mapView.provider!==(result.provider||'amap'))mapView=null;
+          if(result.provider==='baidu'){
+            if(!window.NexthomeMaps)throw new Error('地图加载失败，请重试。');
+            mapSDK=await window.NexthomeMaps.loadBaidu(result.key,result);return mapSDK;
+          }
           window._AMapSecurityConfig = { serviceHost: `${location.origin}/_AMapService` };
           if (!window.AMap) await new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -2220,8 +2236,9 @@
         const system = String(property.coordinateSystem || property.crs || (property.location?.type === 'Point' ? 'wgs84' : mapConfig.coordinateSystem) || '').toLowerCase();
         if (validPosition(lng, lat) && ['gcj02', 'gcj-02', 'wgs84', 'wgs-84', 'bd09', 'bd-09'].includes(system)) {
           let position = [Number(lng), Number(lat)];
-          if (!system.startsWith('gcj')) {
-            const converted = await boundedCallback(done => mapSDK.convertFrom(position, system.startsWith('wgs') ? 'gps' : 'baidu', done));
+          const native = mapSDK.coordinateSystem === 'bd09' ? system.startsWith('bd') : system.startsWith('gcj');
+          if (!native) {
+            const converted = await boundedCallback(done => mapSDK.convertFrom(position, system.startsWith('wgs') ? 'gps' : system.startsWith('gcj') ? 'amap' : 'baidu', done));
             const point = converted.locations?.[0]; if (!point || !validPosition(point.getLng(), point.getLat())) throw new Error('地址定位失败，请重试。');
             position = [point.getLng(), point.getLat()];
           }
@@ -2231,13 +2248,14 @@
         // Use the original address without rewriting business data or inferring a city.
         const address = [property.address, property.building].filter(Boolean).join(' ');
         const city = property.city || mapConfig.city || '';
-        const cacheKey = JSON.stringify([address, city]);
+        const cacheKey = JSON.stringify([mapConfig.provider||'amap',address, city]);
         if (locationCache.has(cacheKey)) return locationCache.get(cacheKey);
         const geocoder = new mapSDK.Geocoder({ city });
         const result = await boundedCallback(done => geocoder.getLocation(address, done));
         const hits = result.geocodes || [];
         const hit = hits[0];
-        if (hits.length !== 1 || !hit?.location || !['门牌号', '兴趣点', '道路', '道路交叉口', '小区'].includes(hit.level)) throw new Error('地址定位结果不明确，无法标记。');
+        const levels=mapConfig.provider==='baidu'?['地址参考点']:['门牌号', '兴趣点', '道路', '道路交叉口', '小区'];
+        if (hits.length !== 1 || !hit?.location || !levels.includes(hit.level)) throw new Error('地址定位结果不明确，无法标记。');
         const position = [hit.location.getLng(), hit.location.getLat()];
         if (!validPosition(...position)) throw new Error('地址定位失败，请重试。');
         const located = { position, note: '按原始地址定位，位置仅供参考。' }; locationCache.set(cacheKey, located); return located;
@@ -2279,7 +2297,7 @@
           if (map && mapLanguage !== language) { map.destroy(); map = null; }
           if (!map) { map = new mapSDK.Map('mapCanvas', { zoom: mapView?.zoom || 11, ...(mapView?.center ? { center: mapView.center } : {}), lang: language === 'en' ? 'en' : 'zh_cn', dragEnable: true, zoomEnable: true, touchZoom: true, keyboardEnable: false }); mapLanguage = language; }
           uiText(mapStatus, '正在定位房源…');
-          const duplicates = new Map();
+          const duplicates = new Map(); let processed = 0;
           for (const entry of results) {
             if (run !== mapRun) return;
             try {
@@ -2297,7 +2315,9 @@
               entry.button.disabled = true; uiText(entry.note, uiError(error, '地址定位失败，请重试。'));
               const link = linkToProperty(entry.property, true); uiText(link, '查看详情'); entry.button.parentElement.append(link);
             }
-            uiText(mapStatus, () => mapSummary(mapEntries.length, rows.length));
+            processed++;
+            const done = processed, locatedCount = mapEntries.length;
+            uiText(mapStatus, () => done === rows.length ? mapSummary(locatedCount, rows.length) : language === 'en' ? `Locating properties: ${done} / ${rows.length} checked; ${locatedCount} located…` : `正在定位房源：已检查 ${done} / ${rows.length} 套，已定位 ${locatedCount} 套…`);
           }
           if (!mapEntries.length) uiText(mapStatus, '没有可定位的房源。');
           else if (mapView) {
@@ -2307,7 +2327,9 @@
         } catch (error) {
           if (run !== mapRun) return;
           uiText(mapStatus, uiError(error, '地图加载失败，请重试。'));
-          results.forEach(entry => { entry.button.disabled = true; uiText(entry.note, '定位失败'); });
+          results.forEach(entry => { entry.button.disabled = true; uiText(entry.note, '定位失败');
+            if (!entry.button.parentElement.querySelector('a')) { const link = linkToProperty(entry.property, true); uiText(link, '查看详情'); entry.button.parentElement.append(link); }
+          });
         }
       }
       function openMapView() {
@@ -2466,10 +2488,11 @@
       }
       function applyFilters() {
         const keyword = searchInput.value.trim().toLowerCase();
-        const hasCriteria = Boolean(keyword || fields.some(field => field.value));
+        const hasCriteria = Boolean(keyword || fields.some(field => field.value) || window.NexthomeCity?.get());
         let visibleCount = 0;
         cards.forEach(card => {
-          const visible = (!keyword || card.dataset.search.includes(keyword))
+          const visible = (!window.NexthomeCity || window.NexthomeCity.matches(propertyRows.find(row => row.id === card.dataset.id)))
+            && (!keyword || card.dataset.search.includes(keyword))
             && (!fields[0].value || card.dataset.district === fields[0].value)
             && (!fields[1].value || card.dataset.layout === fields[1].value)
             && matchesPrice(card.dataset.price === '' ? null : Number(card.dataset.price), fields[2].value)
@@ -2491,6 +2514,7 @@
         persistListState();
       }
 
+      document.addEventListener('nexthome-citychange', () => { mapView = null; applyFilters(); if (!mapModal.hidden) buildMap(); });
       document.getElementById('searchForm').addEventListener('submit', event => { event.preventDefault(); applyFilters(); document.getElementById('listings').scrollIntoView(); });
       aiStartForm.addEventListener('submit', event => { event.preventDefault(); startAiJourney(aiStartInput.value); });
       aiStartInput.addEventListener('input', () => aiStartInput.setCustomValidity(''));
@@ -2543,5 +2567,6 @@
     <script src="/assets/selling-profile.js" defer></script>
     <script src="/assets/home.js" defer></script>
     <script src="/assets/mobile-app.js" defer></script>
+    <script src="/assets/city-navigation.js" defer></script>
   </body>
 </html>
