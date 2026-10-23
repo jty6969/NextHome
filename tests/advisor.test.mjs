@@ -183,3 +183,22 @@ test('legacy password hashes and bindings migrate once; sessions and confirmatio
   assert.equal(legacy.status, 200); assert.equal(legacy.data.user.role, 'seller');
   assert.equal(c.db.prepare('SELECT COUNT(*) n FROM legacy_archives').get().n, 36);
 });
+
+
+test('buyer durable memory survives the history window, stays scoped and only commits successful turns',async t=>{
+  const c=await setup(t);c.env.DEEPSEEK_API_KEY='TEST_ONLY';let prompt;
+  t.mock.method(globalThis,'fetch',async(url,options)=>{prompt=JSON.parse(options.body).messages[0].content;return new Response(JSON.stringify({choices:[{message:{content:'我们先围绕通勤缩小范围。你平时到哪里上班？'}}]}));});
+  const send=message=>c.call('/api/advisor/ai',{message},c.buyer.cookie);
+  let r=await send('预算300万，想要两室，但每天上班太远受不了');assert.equal(r.status,200);assert.equal(r.data.profile.budget,300);assert.equal(r.data.requirements.roomCount,2);
+  r=await send('首付暂时不想说，先给我看看');assert.equal(r.data.conversation.deferred.downPayment,true);
+  for(let i=0;i<16;i++)c.db.prepare('INSERT INTO advisor_chats(account_id,role,content,created_at) VALUES(?,?,?,?)').run(c.buyer.data.user.id,'user','闲聊',new Date().toISOString());
+  r=await send('如果预算到350万会怎样');assert.equal(r.data.profile.budget,300);assert.match(prompt,/"budget":300/);assert.match(prompt,/"downPayment":true/);assert.match(prompt,/Answer the current question FIRST/);
+  r=await send('最好有电梯');assert.equal(r.data.conversation.preferences.needElevator.value,true);assert.equal(r.data.requirements.needElevator,undefined);
+  r=await send('必须有电梯');assert.equal(r.data.requirements.needElevator,true);assert.equal(r.data.conversation.preferences.needElevator,undefined);
+  r=await send('没有电梯也可以');assert.equal(r.data.requirements.needElevator,undefined);
+  r=await send('lshy-1这套临街，我不喜欢');assert.match(r.data.conversation.feedback['lshy-1'],/临街/);assert.equal(r.data.requirements.otherReq,undefined);
+  r=await send('预算改成280万');assert.equal(r.data.profile.budget,280);
+  const other=(await c.call('/api/advisor/state',undefined,c.other.cookie)).data;assert.deepEqual(other.profile,{});assert.deepEqual(other.conversation,{});
+  t.mock.method(globalThis,'fetch',async()=>new Response('{}',{status:402}));
+  await send('预算改成260万');assert.equal((await c.call('/api/advisor/state',undefined,c.buyer.cookie)).data.profile.budget,280);
+});

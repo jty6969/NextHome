@@ -300,19 +300,19 @@ test('sale intent classification excludes hypothetical knowledge, other homes an
   for(const text of ['不卖了','暂不挂牌','取消卖房','I do not want to sell my home','不卖了，我想了解卖房税费','不卖给中介，但现在不卖了'])assert.equal(sellingIntent(text).active,false,text);
   for(const text of ['我想了解卖房流程','如果我要卖房','如果我要卖房要交什么税？','我想知道我要卖房需要哪些材料','我要卖另一套房','不卖给中介','取消','暂不提供地址','不要取消挂牌'])assert.equal(sellingIntent(text).active,undefined,text);
 });
-test('knowledge questions do not activate collection; phases list once, retain early sale details and defer unknown fields',async t=>{
+test('knowledge questions do not activate collection; natural replies preserve phases and early sale details and defer unknown fields',async t=>{
   const c=await setup(t);
   t.mock.method(globalThis,'fetch',async()=>output('卖房一般需要这些材料。'));
   const knowledge=await c.call('ai',{mode:'sell',message:'我想了解卖房流程'},c.a.cookie);assert.equal(knowledge.data.workflow.active,undefined);assert.equal(knowledge.data.content,'卖房一般需要这些材料。');
   t.mock.method(globalThis,'fetch',async()=>output('This should not decide readiness.',{city:fact('上海','上海'),reason:fact('改善置换','改善置换'),priceWan:fact(500,'500万元')}));
   const started=await c.call('ai',{mode:'sell',message:'我要卖房，在上海，改善置换，期望500万元'},c.a.cookie);
-  assert.equal(started.data.workflow.active,true);assert.equal(started.data.validation.stage,1);assert.match(started.data.content,/房屋基本信息/);assert.match(started.data.content,/待补充/);assert.doesNotMatch(started.data.content,/出售相关信息/);assert.equal(started.data.fields.priceWan,500);
+  assert.equal(started.data.workflow.active,true);assert.equal(started.data.validation.stage,1);assert.equal(started.data.content,'This should not decide readiness.');assert.doesNotMatch(started.data.content,/出售相关信息/);assert.equal(started.data.fields.priceWan,500);
   t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({reply:'未知',deferred:['district','community']})}}]})));
-  const deferred=await c.call('ai',{mode:'sell',message:'区域和小区不确定，暂不提供'},c.a.cookie);assert.deepEqual(deferred.data.workflow.deferred,['district','community']);assert.match(deferred.data.content,/请补充：房屋地址/);assert.doesNotMatch(deferred.data.content,/房屋基本信息/);assert.equal(deferred.data.validation.complete,false);
+  const deferred=await c.call('ai',{mode:'sell',message:'区域和小区不确定，暂不提供'},c.a.cookie);assert.deepEqual(deferred.data.workflow.deferred,['district','community']);assert.equal(deferred.data.content,'未知');assert.doesNotMatch(deferred.data.content,/房屋基本信息/);assert.equal(deferred.data.validation.complete,false);
   const fields=completeFields();delete fields.reason;delete fields.priceWan;delete fields.city;
   const patch=await c.call('selling',{revision:deferred.data.revision,fields},c.a.cookie,'PATCH');assert.equal(patch.data.validation.complete,true);
   t.mock.method(globalThis,'fetch',async()=>output('all done'));
-  const second=await c.call('ai',{mode:'sell',message:'请继续'},c.a.cookie);assert.match(second.data.content,/出售相关信息/);assert.match(second.data.content,/改善置换/);assert.doesNotMatch(second.data.content,/请补充.*出售原因|请补充.*期望售价/);
+  const second=await c.call('ai',{mode:'sell',message:'请继续'},c.a.cookie);assert.equal(second.data.content,'all done');assert.equal(second.data.validation.stage,2);assert.equal(second.data.fields.reason,'改善置换');assert.doesNotMatch(second.data.content,/请补充.*出售原因|请补充.*期望售价/);
   const again=await c.call('ai',{mode:'sell',message:'谢谢'},c.a.cookie);assert.doesNotMatch(again.data.content,/出售相关信息/);
 });
 test('readiness checks floors, false elevator, occupancy and conflicts; natural language clears and revisions preserve unrelated conflicts',async t=>{
@@ -380,4 +380,17 @@ test('short explicit sale intent starts collection while declining one detail do
   const c=await setup(t);t.mock.method(globalThis,'fetch',async()=>output('好的'));
   const short=await c.call('ai',{mode:'sell',message:'挂牌'},c.a.cookie);assert.equal(short.data.workflow.active,true);
   const declined=await c.call('ai',{mode:'sell',propertyId:'second',message:'我要卖房，暂不提供地址'},c.a.cookie);assert.equal(declined.data.workflow.active,true);
+});
+
+
+test('seller knowledge interrupts collection and truncated hypothetical evidence cannot mutate any home',async t=>{
+ const c=await setup(t);
+ await c.call('selling',{revision:0,fields:{priceWan:300}},c.a.cookie,'PATCH');
+ c.db.prepare("UPDATE seller_properties SET workflow=? WHERE account_id=?").run(JSON.stringify({active:true,deferred:['address']}),c.a.user.id);
+ t.mock.method(globalThis,'fetch',async()=>output('周期受定价、市场供需和手续影响，目前没有当地成交数据，无法确定。',{priceWan:fact(350,'350万元')}));
+ let r=await c.call('ai',{mode:'sell',message:'卖房一般需要多久？如果售价350万元会怎样'},c.a.cookie);
+ assert.equal(r.data.fields.priceWan,300);assert.match(r.data.content,/周期受/);assert.doesNotMatch(r.data.content,/请补充|先确认/);assert.deepEqual(r.data.workflow.deferred,['address']);
+ r=await c.call('ai',{mode:'sell',message:'朋友售价350万元'},c.a.cookie);assert.equal(r.data.fields.priceWan,300);
+ assert.deepEqual((await c.call('selling?propertyId=second',undefined,c.a.cookie)).data.fields,{});
+ assert.deepEqual((await c.call('selling',undefined,c.b.cookie)).data.fields,{});
 });

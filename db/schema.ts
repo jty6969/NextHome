@@ -78,6 +78,7 @@ export const listings = sqliteTable(
 export const advisorAccounts = sqliteTable('advisor_accounts', {
   accountId: text('account_id').primaryKey(), displayName: text('display_name'),
   seller: integer('seller').notNull().default(0),
+  conversation: text('conversation').notNull().default('{}'),
   profile: text('profile').notNull().default('{}'), requirements: text('requirements').notNull().default('{}'),
 });
 export const listingSellers = sqliteTable('listing_sellers', {

@@ -1,0 +1,1 @@
+ALTER TABLE `advisor_accounts` ADD `conversation` text DEFAULT '{}' NOT NULL;
